@@ -4,16 +4,19 @@ import CreateTaskForm from "./CreateTaskForm";
 const CompletedTasksReport: React.FC = () => {
   const [tasks, setTasks] = useState([]);
   const [category, setCategory] = useState("");
+  const [status, setStatus] = useState("Done");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   // Refresh tasks after creating a new one
   const refreshTasks = () => {
     const params = new URLSearchParams();
-    if (category) params.append("category", category);
+  if (category) params.append("category", category);
+  if (status) params.append("status", status);
     if (from) params.append("from", from);
     if (to) params.append("to", to);
     params.append("page", String(page));
@@ -29,15 +32,32 @@ const CompletedTasksReport: React.FC = () => {
 
   useEffect(() => {
     refreshTasks();
-  }, [category, from, to, page, pageSize]);
+  }, [page, pageSize, searchTrigger]);
 
   return (
     <div>
       <CreateTaskForm onTaskCreated={refreshTasks} />
       <h2>Completed Tasks Report</h2>
-      <label>
-        Category:
-        <input value={category} onChange={e => setCategory(e.target.value)} />
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          setPage(1);
+          setSearchTrigger(searchTrigger + 1);
+        }}
+        style={{ marginBottom: "1em" }}
+      >
+      <label htmlFor="status-filter" style={{ marginRight: "1em" }}>
+        <strong>Status:</strong>
+        <select id="status-filter" value={status} onChange={e => setStatus(e.target.value)}>
+          <option value="">All</option>
+          <option value="Pending">Pending</option>
+          <option value="In-Progress">In-Progress</option>
+          <option value="Done">Done</option>
+        </select>
+      </label>
+      <label htmlFor="category-filter" style={{ marginRight: "1em" }}>
+        <strong>Category:</strong>
+        <input id="category-filter" value={category} onChange={e => setCategory(e.target.value)} placeholder="Category" />
       </label>
       <label>
         From:
@@ -55,6 +75,8 @@ const CompletedTasksReport: React.FC = () => {
           ))}
         </select>
       </label>
+        <button type="submit" style={{ marginLeft: "1em" }}>Search</button>
+      </form>
       <ul>
         {tasks.map((task: any) => (
           <li key={task.id}>

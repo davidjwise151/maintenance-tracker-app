@@ -12,13 +12,15 @@ const router = Router();
  * @access  Private (requires JWT)
  */
 router.get("/completed", authenticateJWT, async (req: Request, res: Response) => {
-  const { category, from, to, page = 1, pageSize = 20, sort = "desc" } = req.query;
+  const { category, from, to, status = "Done", page = 1, pageSize = 20, sort = "desc" } = req.query;
   const taskRepo = AppDataSource.getRepository(Task);
 
   let query = taskRepo.createQueryBuilder("task")
-    .leftJoinAndSelect("task.user", "user")
-    .where("task.status = :status", { status: "Done" });
+    .leftJoinAndSelect("task.user", "user");
 
+  if (status && status !== "") {
+    query = query.where("task.status = :status", { status });
+  }
   if (category) query = query.andWhere("task.category = :category", { category });
   if (from) query = query.andWhere("task.completedAt >= :from", { from });
   if (to) query = query.andWhere("task.completedAt <= :to", { to });
@@ -31,6 +33,7 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
   query = query.skip(skip).take(Number(pageSize));
 
   const [tasks, total] = await query.getManyAndCount();
+  console.log("Completed Tasks Query Result:", tasks, "Total:", total);
 
   // Return tasks with pagination info
   res.json({

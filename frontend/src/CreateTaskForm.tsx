@@ -63,10 +63,14 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
         onChange={e => setCategory(e.target.value)}
         required
       />
-      <select value={status} onChange={e => setStatus(e.target.value)}>
-        <option value="Pending">Pending</option>
-        <option value="Done">Done</option>
-      </select>
+      <label htmlFor="status-select" style={{ marginRight: "1em" }}>
+        <strong>Status:</strong>
+        <select id="status-select" value={status} onChange={e => setStatus(e.target.value)}>
+          <option value="Pending">Pending</option>
+          <option value="In-Progress">In-Progress</option>
+          <option value="Done">Done</option>
+        </select>
+      </label>
       <button type="submit">Create Task</button>
       {error && <div style={{ color: "red" }}>{error}</div>}
       {success && <div style={{ color: "green" }}>{success}</div>}
