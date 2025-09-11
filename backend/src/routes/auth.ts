@@ -2,17 +2,16 @@ import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { body, validationResult } from "express-validator";
+import { AppDataSource } from "../data-source";
+import { User } from "../entity/User";
 
 /**
  * Authentication routes for registration and login.
- * Uses an in-memory user store for demonstration purposes.
- * Replace with a database for production use.
+ * All user queries use TypeORM ORM for secure, parameterized database access.
+ * Passwords are hashed before storage. JWT is used for authentication.
  */
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
-
-// Dummy user store (replace with DB later)
-const users: { [email: string]: { password: string; id: string } } = {};
 
 /**
  * @route   POST /api/auth/register
@@ -35,13 +34,16 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
     const { email, password } = req.body;
+    const userRepo = AppDataSource.getRepository(User);
+    const existingUser = await userRepo.findOneBy({ email });
     // Prevent duplicate registration
-    if (users[email]) return res.status(400).json({ error: "User already exists" });
+    if (existingUser) return res.status(400).json({ error: "User already exists" });
     // Hash password before storing
     const hashed = await bcrypt.hash(password, 10);
     // Generate a simple unique user ID
     const id = Math.random().toString(36).substr(2, 9);
-    users[email] = { password: hashed, id };
+    // ... Save the new user to the database
+    await userRepo.save({ email, password: hashed, id });
     res.json({ message: "Registered", email, id });
   }
 );
@@ -67,7 +69,8 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
     const { email, password } = req.body;
-    const user = users[email];
+    const userRepo = AppDataSource.getRepository(User);
+    const user = await userRepo.findOneBy({ email });
     // Check if user exists
     if (!user) return res.status(400).json({ error: "Invalid credentials" });
     // Compare password with stored hash
