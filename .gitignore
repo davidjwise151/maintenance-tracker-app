@@ -9,3 +9,5 @@ build/
 
 # Logs
 *.log
+
+dev.db
