@@ -26,6 +26,18 @@ export class Task {
   @Column()
   status!: string;
 
+    /**
+     * Category of the task (e.g., Electrical, Plumbing, HVAC).
+     */
+    @Column({ nullable: true })
+    category?: string;
+
+    /**
+     * Date when the task was completed (timestamp).
+     */
+    @Column({ type: "bigint", nullable: true })
+    completedAt?: number;
+
   /**
    * Reference to the user who owns this task.
    * Establishes a many-to-one relationship with the User entity.

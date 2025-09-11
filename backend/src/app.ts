@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import authRoutes from "./routes/auth";
+import tasksRoutes from "./routes/tasks";
 import { authenticateJWT } from "./middleware/auth";
 
 /**
@@ -39,6 +40,8 @@ app.get("/api/protected", authenticateJWT, (req: AuthenticatedRequest, res) => {
 app.get("/api/hello", (req, res) => {
   res.json({ message: 'Hello from backend!' });
 });
+
+app.use("/api/tasks", tasksRoutes);
 
 // Export the Express app for use in server startup and testing
 export default app;
