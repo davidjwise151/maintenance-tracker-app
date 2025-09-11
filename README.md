@@ -15,11 +15,58 @@ Maintenance Tracker App is a modern web application built with React, Node.js, a
 - **Categories/Tags:** Assign tasks to categories such as plumbing, electrical, and more.
 - **Database Security:** Persistent storage using SQLite and TypeORM, with parameterized queries to prevent SQL injection.
 
+
 **Planned Features:**
 - Due dates and notifications/reminders
 - Task status tracking (pending, in-progress, done)
-- Reporting and history views
 - Multi-user support
+
+---
+
+## Reporting & History View (Completed Tasks)
+
+### Overview
+The app now includes a reporting/history view for completed and past maintenance tasks. Users can:
+- View completed tasks in a sortable, paginated table
+- Filter by date range, category, and status
+- See task details and associated user
+
+### How to Use
+1. Log in to the app.
+2. Navigate to the "Completed Tasks Report" section in the frontend.
+3. Use the filter form to search by status, category, date range, and page size.
+4. Results are shown in a table with pagination controls.
+
+### Backend API
+**Endpoint:** `GET /api/tasks/completed`
+
+**Query Parameters:**
+- `category` (optional): Filter by category
+- `from` (optional): Completed after this date
+- `to` (optional): Completed before this date
+- `status` (optional, default: "Done"): Filter by status
+- `page` (optional, default: 1): Page number
+- `pageSize` (optional, default: 20): Results per page
+- `sort` (optional, default: "desc"): Sort by completed date
+
+**Response:**
+```
+{
+   tasks: [
+      {
+         id, title, category, completedAt, status,
+         user: { id, email } | null
+      }
+   ],
+   total: number,
+   page: number,
+   pageSize: number
+}
+```
+
+**Authentication:** JWT required in `Authorization` header.
+
+---
 
 This project demonstrates fast, iterative development with a focus on code quality, usability, and security. Feature requests and feedback are welcome as the app evolves!
 
@@ -52,9 +99,11 @@ This project demonstrates fast, iterative development with a focus on code quali
    - Backend: `npm run dev` (auto-restarts with nodemon)
    - Frontend: `npm start`
 
+
 5. **Testing:**  
    - Register and log in to create users.
    - Tasks are stored securely in the database.
+   - Use the Completed Tasks Report to verify reporting and filtering features.
 
 ---
 
