@@ -7,8 +7,8 @@ import { User } from "../entity/User";
 
 /**
  * Authentication routes for registration and login.
- * Uses an in-memory user store for demonstration purposes.
- * Replace with a database for production use.
+ * All user queries use TypeORM ORM for secure, parameterized database access.
+ * Passwords are hashed before storage. JWT is used for authentication.
  */
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
