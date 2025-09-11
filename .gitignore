@@ -11,3 +11,4 @@ build/
 *.log
 
 dev.db
+.vscode/

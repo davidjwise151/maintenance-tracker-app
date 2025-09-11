@@ -2,7 +2,11 @@ import React, { useState } from "react";
 
 type Mode = "login" | "register";
 
-const AuthForm: React.FC = () => {
+interface AuthFormProps {
+  onLoginSuccess?: () => void;
+}
+
+const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +25,7 @@ const AuthForm: React.FC = () => {
     if (res.ok && mode === "login" && data.token) {
       localStorage.setItem("token", data.token);
       setMessage("Login successful!");
+      if (onLoginSuccess) onLoginSuccess();
     } else if (res.ok && mode === "register") {
       setMessage("Registration successful! You can now log in.");
       setMode("login");

@@ -1,13 +1,23 @@
 import React, { useState } from "react";
 import AuthForm from "./AuthForm";
+import CompletedTasksReport from "./CompletedTasksReport";
 
 /**
  * Main application component.
  * Handles authentication UI and testing access to a protected backend route.
  */
 function App() {
+  // Handles sign out
+  const handleSignOut = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    setProtectedMsg("");
+  };
+  // State for displaying the protected route message
   // State for displaying the protected route message
   const [protectedMsg, setProtectedMsg] = useState("");
+  // Tracks login status
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
 
   /**
    * Attempts to access a protected backend route.
@@ -36,14 +46,31 @@ function App() {
     }
   };
 
+  // Handles login success from AuthForm
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+  };
+
   return (
-    <div>
-      {/* Authentication form for login and registration */}
-      <AuthForm />
-      {/* Button to test access to protected backend route */}
-      <button onClick={fetchProtected}>Test Protected Route</button>
-      {/* Display the result of the protected route request */}
-      <div>{protectedMsg}</div>
+    <div style={{ maxWidth: 600, margin: "2em auto", padding: "2em", border: "1px solid #ccc", borderRadius: 8 }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2em" }}>
+        <h1>Maintenance Tracker</h1>
+        {isLoggedIn && (
+          <button onClick={handleSignOut} style={{ padding: "0.5em 1em" }}>Sign Out</button>
+        )}
+      </header>
+      <main>
+        {/* If not logged in, show authentication form */}
+        {!isLoggedIn ? (
+          <>
+            <AuthForm onLoginSuccess={handleLoginSuccess} />
+            <button onClick={fetchProtected}>Test Protected Route</button>
+            <div>{protectedMsg}</div>
+          </>
+        ) : (
+          <CompletedTasksReport />
+        )}
+      </main>
     </div>
   );
 }

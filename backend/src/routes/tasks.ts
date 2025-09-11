@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { authenticateJWT } from "../middleware/auth";
 import { AppDataSource } from "../data-source";
 import { Task } from "../entity/Task";
 import { User } from "../entity/User";
@@ -8,9 +9,9 @@ const router = Router();
 /**
  * @route   GET /api/tasks/completed
  * @desc    Get completed tasks with optional filters (date, category)
- * @access  Private (should require JWT in production)
+ * @access  Private (requires JWT)
  */
-router.get("/completed", async (req: Request, res: Response) => {
+router.get("/completed", authenticateJWT, async (req: Request, res: Response) => {
   const { category, from, to, page = 1, pageSize = 20, sort = "desc" } = req.query;
   const taskRepo = AppDataSource.getRepository(Task);
 
@@ -50,9 +51,9 @@ router.get("/completed", async (req: Request, res: Response) => {
 /**
  * @route   POST /api/tasks
  * @desc    Create a new maintenance task
- * @access  Private (should require JWT in production)
+ * @access  Private (requires JWT)
  */
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   const { title, category, status, userId } = req.body;
 
   console.log("Task creation request body:", req.body);
