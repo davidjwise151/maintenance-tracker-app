@@ -54,13 +54,13 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
  * @access  Private (requires JWT)
  */
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
-  const { title, category, status, userId } = req.body;
+  const { title, category, status } = req.body;
 
-  console.log("Task creation request body:", req.body);
-
-  // Error handling for missing userId
+  // Get userId from JWT payload
+  const jwtUser = (req as any).user;
+  const userId = jwtUser && jwtUser.id;
   if (!userId) {
-    return res.status(400).json({ error: "User ID is required." });
+    return res.status(401).json({ error: "Unauthorized: No user ID in token." });
   }
 
   const userRepo = AppDataSource.getRepository(User);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import CreateTaskForm from "./CreateTaskForm";
 
 const CompletedTasksReport: React.FC = () => {
   const [tasks, setTasks] = useState([]);
@@ -9,7 +10,8 @@ const CompletedTasksReport: React.FC = () => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
+  // Refresh tasks after creating a new one
+  const refreshTasks = () => {
     const params = new URLSearchParams();
     if (category) params.append("category", category);
     if (from) params.append("from", from);
@@ -23,10 +25,15 @@ const CompletedTasksReport: React.FC = () => {
         setTasks(data.tasks || []);
         setTotal(data.total || 0);
       });
+  };
+
+  useEffect(() => {
+    refreshTasks();
   }, [category, from, to, page, pageSize]);
 
   return (
     <div>
+      <CreateTaskForm onTaskCreated={refreshTasks} />
       <h2>Completed Tasks Report</h2>
       <label>
         Category:
