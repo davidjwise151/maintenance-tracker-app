@@ -1,19 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import AuthForm from "./AuthForm";
 
 function App() {
-  const [message, setMessage] = useState("");
+  const [protectedMsg, setProtectedMsg] = useState("");
 
-  useEffect(() => {
-    fetch("/api/hello")
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch((err) => setMessage("Error fetching message"));
-  }, []);
+  const fetchProtected = async () => {
+    const token = localStorage.getItem("token");
+    const res = await fetch("/api/protected", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    setProtectedMsg(data.message || "Unauthorized");
+  };
 
   return (
     <div>
-      <h1>Backend Message:</h1>
-      <p>{message}</p>
+      <AuthForm />
+      <button onClick={fetchProtected}>Test Protected Route</button>
+      <div>{protectedMsg}</div>
     </div>
   );
 }
