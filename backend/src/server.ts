@@ -1,15 +1,10 @@
-const express = require('express');
-const app = express();
+import app from './app';
+
+/**
+ * Entry point for starting the Express server.
+ * Listens on the port defined in environment variables or defaults to 5000.
+ */
 const PORT = process.env.PORT || 5000;
-
-// Example API route
-import { Request, Response } from 'express';
-
-app.get('/api/hello', (req: Request, res: Response) => {
-  res.json({ message: 'Hello from backend!' });
-});
-
-// Other middleware/routes ...
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
