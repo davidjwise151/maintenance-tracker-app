@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from "react";
 
-// Placeholder for routing and authentication
 function App() {
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    fetch("/api/hello")
+      .then((res) => res.json())
+      .then((data) => setMessage(data.message))
+      .catch((err) => setMessage("Error fetching message"));
+  }, []);
+
   return (
     <div>
-      <h1>Maintenance Tracker App</h1>
-      {/* TODO: Add navigation and pages for login, tasks, categories */}
-      {/* TODO: Placeholder for future features: due dates, notifications, status tracking, reporting, multi-user support */}
+      <h1>Backend Message:</h1>
+      <p>{message}</p>
     </div>
   );
 }
