@@ -13,6 +13,7 @@ Maintenance Tracker App is a modern web application built with React, Node.js, a
 - **User Authentication:** Secure registration and login using JWT.
 - **Task Management:** Create, view, update, and delete maintenance tasks.
 - **Categories/Tags:** Assign tasks to categories such as plumbing, electrical, and more.
+- **Database Security:** Persistent storage using SQLite and TypeORM, with parameterized queries to prevent SQL injection.
 
 **Planned Features:**
 - Due dates and notifications/reminders
@@ -29,8 +30,57 @@ This project demonstrates fast, iterative development with a focus on code quali
 - **Frontend:** React (TypeScript)
 - **Backend:** Node.js, Express (TypeScript)
 - **Authentication:** JWT
-- **Database:** (Initial: in-memory, upgrade planned)
+- **Database:** SQLite with TypeORM (secure, persistent storage)
 - **Deployment:** Cloud (Vercel, Heroku, etc.)
+
+---
+
+## Setup & Usage
+
+1. **Install dependencies:**  
+   Run `npm install` in both `backend` and `frontend` directories.
+
+2. **Database:**  
+   The backend uses SQLite (`dev.db`) via TypeORM.  
+   No manual setup required for local development.
+
+3. **Environment Variables:**  
+   - Backend: Create a `.env` file with `JWT_SECRET=your_jwt_secret`
+   - TypeORM and SQLite are pre-configured for development.
+
+4. **Run the app:**  
+   - Backend: `npm run dev` (auto-restarts with nodemon)
+   - Frontend: `npm start`
+
+5. **Testing:**  
+   - Register and log in to create users.
+   - Tasks are stored securely in the database.
+
+---
+
+## Developer Notes
+
+- **Backend Structure:**  
+  - `src/entity/`: TypeORM models (User, Task)
+  - `src/routes/`: Express route handlers (auth, tasks)
+  - `src/data-source.ts`: TypeORM configuration
+  - `src/app.ts`: Express app setup
+  - `src/server.ts`: Server entry point
+
+- **Adding Features:**  
+  - Create new entities in `src/entity/`
+  - Add new routes in `src/routes/`
+  - Use TypeORM for all database access
+
+- **Security:**  
+  - All queries use TypeORM (parameterized, prevents SQL injection)
+  - Passwords are hashed with bcrypt
+  - JWT used for authentication
+  - Input validated with express-validator
+
+- **Development:**  
+  - Use `npm run dev` for backend (nodemon auto-restarts)
+  - Use VS Code SQLite extension to inspect `dev.db`
 
 ---
 
