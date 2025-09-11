@@ -4,8 +4,14 @@ import cors from 'cors';
 // Placeholder for routes and middleware
 const app = express();
 
+
 app.use(cors());
 app.use(express.json());
+
+// Hello World API route
+app.get('/api/hello', (req, res) => {
+	res.json({ message: 'Hello from backend!' });
+});
 
 // Future: Add authentication middleware here
 
