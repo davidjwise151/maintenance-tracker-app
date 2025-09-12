@@ -3,6 +3,7 @@ node_modules/
 dist/
 .env
 %APPDATA%
+.env.example
 
 # React
 build/
