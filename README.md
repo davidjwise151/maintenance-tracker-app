@@ -24,18 +24,18 @@ Maintenance Tracker App is a modern web application built with React, Node.js, a
 
 ---
 
-## Reporting & History View (Completed Tasks)
+## Maintenance Task Log
 
 ### Overview
-The app now includes a reporting/history view for completed and past maintenance tasks. Users can:
-- View completed tasks in a sortable, paginated table
+The app now includes a log/history view for all maintenance tasks. Users can:
+- View all tasks in a sortable, paginated table
 - Filter by date range, category, and status (Pending, In-Progress, Done)
 - See task details and associated user
 
 ### How to Use
 1. Log in to the app.
-2. Navigate to the "Completed Tasks Report" section in the frontend.
-3. Use the filter form to search by status (Pending, In-Progress, Done), category, date range, and page size.
+2. Navigate to the "Maintenance Task Log" section in the frontend.
+3. Use the filter form to search by status (Pending, In-Progress, Done, All), category, date range, and page size.
 4. Results are shown in a table with pagination controls.
 
 ### Backend API
