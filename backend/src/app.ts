@@ -11,9 +11,12 @@ import { authenticateJWT } from "./middleware/auth";
 const app = express();
 
 app.use(cors({
-  origin: 'https://maintenance-tracker-app.vercel.app',
+  origin: [
+    'https://maintenance-tracker-app.vercel.app',
+    /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/
+  ],
   credentials: true
-})); // Enable Cross-Origin Resource Sharing for Vercel frontend
+})); // Enable CORS for production and Vercel preview domains
 app.use(express.json()); // Parse JSON request bodies
 
 // Mount authentication routes at /api/auth
