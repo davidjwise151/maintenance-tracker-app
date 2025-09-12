@@ -53,8 +53,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div>
-      <h2>{mode === "login" ? "Login" : "Register"}</h2>
+    <div style={{ border: '2px solid #ff0000', padding: '16px', borderRadius: '8px' }}>
+      <h2 style={{ color: '#ff0000' }}>Cloud Preview: {mode === "login" ? "Login" : "Register"}</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -70,12 +70,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
           onChange={e => setPassword(e.target.value)}
           required
         /><br />
-        <button type="submit">{mode === "login" ? "Login" : "Register"}</button>
+        <button type="submit" style={{ backgroundColor: '#ff0000', color: '#fff' }}>
+          {mode === "login" ? "Login to Cloud" : "Register to Cloud"}
+        </button>
       </form>
-      <button onClick={() => setMode(mode === "login" ? "register" : "login")}>
-        {mode === "login" ? "Need an account? Register" : "Already have an account? Login"}
+      <button onClick={() => setMode(mode === "login" ? "register" : "login")}
+        style={{ marginTop: '8px', backgroundColor: '#fff', color: '#ff0000', border: '1px solid #ff0000' }}>
+        {mode === "login" ? "Need an account? Register (Cloud)" : "Already have an account? Login (Cloud)"}
       </button>
-      <div>{message}</div>
+      <div style={{ marginTop: '12px', color: '#ff0000' }}>{message}</div>
+      <div style={{ marginTop: '12px', fontSize: '12px', color: '#888' }}>
+        <strong>Preview Deployment UI Change</strong>
+      </div>
     </div>
   );
 };
