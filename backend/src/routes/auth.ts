@@ -28,6 +28,7 @@ router.post(
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
   ],
   async (req: Request, res: Response) => {
+    console.log("Register request body:", req.body); // Add this line
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -63,6 +64,7 @@ router.post(
     body("password").notEmpty().withMessage("Password required"),
   ],
   async (req: Request, res: Response) => {
+    console.log("Login request body:", req.body); // Add this line
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
