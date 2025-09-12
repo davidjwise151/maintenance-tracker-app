@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import AuthForm from "./AuthForm";
-import CompletedTasksReport from "./CompletedTasksReport";
+import MaintenanceTaskLog from "./MaintenanceTaskLog";
 
 /**
  * Main application component.
@@ -68,7 +68,7 @@ function App() {
             <div>{protectedMsg}</div>
           </>
         ) : (
-          <CompletedTasksReport />
+      <MaintenanceTaskLog />
         )}
       </main>
     </div>

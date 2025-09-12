@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
 import CreateTaskForm from "./CreateTaskForm";
+import Toast from "./Toast";
 
-
-// CompletedTasksReport component displays a report/history view of completed maintenance tasks
-const CompletedTasksReport: React.FC = () => {
-  // State for summary counts
-  const [summary, setSummary] = useState({ open: 0, completed: 0 });
+// MaintenanceTaskLog component displays a log/history view of all maintenance tasks
+const MaintenanceTaskLog: React.FC = () => {
+  // State for summary counts (commented out)
   // State for tasks and filter/search controls
   const [tasks, setTasks] = useState([]);
-  const [category, setCategory] = useState(""); // Filter by category
-  const [status, setStatus] = useState(""); // Filter by status (blank by default)
+  const [category, setCategory] = useState(""); // Filter by category (blank means All)
+  const [status, setStatus] = useState(""); // Filter by status (blank means All)
   const [from, setFrom] = useState(""); // Filter by start date
   const [to, setTo] = useState(""); // Filter by end date
   // Generic maintenance categories for dropdown
@@ -28,37 +27,25 @@ const CompletedTasksReport: React.FC = () => {
   const [pageSize, setPageSize] = useState(5); // Pagination: page size
   const [total, setTotal] = useState(0); // Total number of results
   const [searchTrigger, setSearchTrigger] = useState(0); // Used to trigger search on filter change
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Fetch completed tasks and summary counts from backend with filters and pagination
   const refreshTasks = () => {
     // Only search if at least one filter is set
-    if (!category && !status && !from && !to) {
-      setTasks([]);
-      setTotal(0);
-      // Fetch summary counts for all tasks
-      fetch("/api/tasks/summary", {
-        headers: {
-          "Authorization": localStorage.getItem("token") ? `Bearer ${localStorage.getItem("token")}` : "",
-        },
-      })
-        .then(res => res.ok ? res.json() : { open: 0, completed: 0 })
-        .then(data => setSummary({ open: data.open || 0, completed: data.completed || 0 }))
-        .catch(() => setSummary({ open: 0, completed: 0 }));
-      return;
-    }
     const params = new URLSearchParams();
+    // Only send category if not blank (not All)
     if (category) params.append("category", category);
+    // Only send status if not blank (not All)
     if (status) params.append("status", status);
     if (from) params.append("from", from);
     if (to) params.append("to", to);
     params.append("page", String(page));
     params.append("pageSize", String(pageSize));
 
-    // Get JWT token from localStorage for authentication
     const token = localStorage.getItem("token");
-  fetch(`/api/tasks/completed?${params.toString()}`, {
+    fetch(`/api/tasks/completed?${params.toString()}`, {
       headers: {
-        "Authorization": token ? `Bearer ${token}` : "",
+        Authorization: token ? `Bearer ${token}` : "",
       },
     })
       .then(res => {
@@ -68,13 +55,10 @@ const CompletedTasksReport: React.FC = () => {
       .then(data => {
         setTasks(data.tasks || []);
         setTotal(data.total || 0);
-        // Optionally update summary if returned
-        if (data.summary) setSummary(data.summary);
       })
       .catch(err => {
         setTasks([]);
         setTotal(0);
-        // Log error to console for debugging
         console.error(err);
       });
   };
@@ -87,15 +71,14 @@ const CompletedTasksReport: React.FC = () => {
   // Render UI: filter form, results table, pagination
   return (
     <div>
-      {/* Summary section */}
-      <div style={{ marginBottom: "1em", padding: "1em", background: "#eef", borderRadius: "8px" }}>
-        <h3>Task Summary</h3>
-        <div><strong>Open Tasks:</strong> {summary.open}</div>
-        <div><strong>Completed Tasks:</strong> {summary.completed}</div>
-      </div>
       {/* Form to create new tasks; triggers refresh on creation */}
       <CreateTaskForm onTaskCreated={refreshTasks} />
-      <h2>Completed Tasks Report</h2>
+      <h2>Maintenance Task Log</h2>
+      {/* Results counter */}
+      <div style={{ marginBottom: "0.5em", fontWeight: "bold" }}>
+        Showing {tasks.length} result{tasks.length !== 1 ? "s" : ""}
+        {total > tasks.length ? ` (of ${total} total)` : ""}
+      </div>
       {/* Filter/search form */}
       <form
         onSubmit={e => {
@@ -194,7 +177,36 @@ const CompletedTasksReport: React.FC = () => {
                     <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.title}</td>
                     <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.category || "Uncategorized"}</td>
                     <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
-                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.status}</td>
+                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>
+                      <select
+                        value={task.status}
+                        onChange={e => {
+                          const newStatus = e.target.value;
+                          const token = localStorage.getItem("token");
+                          fetch(`/api/tasks/${task.id}/status`, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              "Authorization": token ? `Bearer ${token}` : "",
+                            },
+                            body: JSON.stringify({ status: newStatus })
+                          })
+                            .then(res => {
+                              if (!res.ok) throw new Error("Failed to update status");
+                              setToast({ message: "Status updated successfully!", type: "success" });
+                              setSearchTrigger(searchTrigger + 1);
+                            })
+                            .catch(err => {
+                              setToast({ message: "Error updating status: " + err.message, type: "error" });
+                            });
+                        }}
+                        style={{ minWidth: 120 }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="In-Progress">In-Progress</option>
+                        <option value="Done">Done</option>
+                      </select>
+                    </td>
                     <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.user?.email || "N/A"}</td>
                   </tr>
                 ))}
@@ -208,9 +220,17 @@ const CompletedTasksReport: React.FC = () => {
         <span style={{ margin: "0 1em" }}> Page {page} of {Math.ceil(total / pageSize) || 1} </span>
         <button onClick={() => setPage(page + 1)} disabled={page * pageSize >= total}>Next</button>
       </div>
-      <div>Total Completed Tasks: {total}</div>
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };
 
-export default CompletedTasksReport;
+export default MaintenanceTaskLog;
