@@ -9,6 +9,5 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "lib": ["es2016", "dom"],
-    "types": ["node"]
   }
 }
