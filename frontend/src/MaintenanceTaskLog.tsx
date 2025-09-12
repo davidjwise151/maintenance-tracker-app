@@ -43,7 +43,8 @@ const MaintenanceTaskLog: React.FC = () => {
     params.append("pageSize", String(pageSize));
 
     const token = localStorage.getItem("token");
-    fetch(`/api/tasks/completed?${params.toString()}`, {
+  const apiBase = process.env.REACT_APP_API_URL || "";
+  fetch(`${apiBase}/api/tasks/completed?${params.toString()}` , {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
       },
@@ -183,7 +184,8 @@ const MaintenanceTaskLog: React.FC = () => {
                         onChange={e => {
                           const newStatus = e.target.value;
                           const token = localStorage.getItem("token");
-                          fetch(`/api/tasks/${task.id}/status`, {
+                          const apiBase = process.env.REACT_APP_API_URL || "";
+                          fetch(`${apiBase}/api/tasks/${task.id}/status`, {
                             method: "PUT",
                             headers: {
                               "Content-Type": "application/json",
