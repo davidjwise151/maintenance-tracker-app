@@ -88,11 +88,13 @@ const CompletedTasksReport: React.FC = () => {
   return (
     <div>
       {/* Summary section */}
+      {/*
       <div style={{ marginBottom: "1em", padding: "1em", background: "#eef", borderRadius: "8px" }}>
         <h3>Task Summary</h3>
         <div><strong>Open Tasks:</strong> {summary.open}</div>
         <div><strong>Completed Tasks:</strong> {summary.completed}</div>
       </div>
+      */}
       {/* Form to create new tasks; triggers refresh on creation */}
       <CreateTaskForm onTaskCreated={refreshTasks} />
       <h2>Completed Tasks Report</h2>
@@ -208,7 +210,6 @@ const CompletedTasksReport: React.FC = () => {
         <span style={{ margin: "0 1em" }}> Page {page} of {Math.ceil(total / pageSize) || 1} </span>
         <button onClick={() => setPage(page + 1)} disabled={page * pageSize >= total}>Next</button>
       </div>
-      <div>Total Completed Tasks: {total}</div>
     </div>
   );
 };

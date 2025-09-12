@@ -12,6 +12,7 @@ Maintenance Tracker App is a modern web application built with React, Node.js, a
 **Core Features (v0.1 Beta):**
 - **User Authentication:** Secure registration and login using JWT.
 - **Task Management:** Create, view, update, and delete maintenance tasks.
+- **Task Status Tracking:** Set and update status (Pending, In-Progress, Done) for each task. Filter and report by status in the UI and API.
 - **Categories/Tags:** Assign tasks to categories such as plumbing, electrical, and more.
 - **Database Security:** Persistent storage using SQLite and TypeORM, with parameterized queries to prevent SQL injection.
 
@@ -28,13 +29,13 @@ Maintenance Tracker App is a modern web application built with React, Node.js, a
 ### Overview
 The app now includes a reporting/history view for completed and past maintenance tasks. Users can:
 - View completed tasks in a sortable, paginated table
-- Filter by date range, category, and status
+- Filter by date range, category, and status (Pending, In-Progress, Done)
 - See task details and associated user
 
 ### How to Use
 1. Log in to the app.
 2. Navigate to the "Completed Tasks Report" section in the frontend.
-3. Use the filter form to search by status, category, date range, and page size.
+3. Use the filter form to search by status (Pending, In-Progress, Done), category, date range, and page size.
 4. Results are shown in a table with pagination controls.
 
 ### Backend API
@@ -44,7 +45,7 @@ The app now includes a reporting/history view for completed and past maintenance
 - `category` (optional): Filter by category
 - `from` (optional): Completed after this date
 - `to` (optional): Completed before this date
-- `status` (optional, default: "Done"): Filter by status
+- `status` (optional, default: "Done"): Filter by status (Pending, In-Progress, Done)
 - `page` (optional, default: 1): Page number
 - `pageSize` (optional, default: 20): Results per page
 - `sort` (optional, default: "desc"): Sort by completed date
