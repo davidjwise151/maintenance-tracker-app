@@ -4,6 +4,27 @@ import Toast from "./Toast";
 
 // MaintenanceTaskLog component displays a log/history view of all maintenance tasks
 const MaintenanceTaskLog: React.FC = () => {
+  // Handles task deletion with confirmation and feedback
+  const handleDelete = async (taskId: string) => {
+    if (!window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
+      setToast({ message: "Task deleted successfully!", type: "success" });
+      // Remove deleted task from UI
+      setTasks(tasks.filter((t: any) => t.id !== taskId));
+      setTotal(total > 0 ? total - 1 : 0);
+    } catch (err) {
+  setToast({ message: "Error deleting task: " + String(err), type: "error" });
+    }
+  };
   // State for summary counts (commented out)
   // State for tasks and filter/search controls
   const [tasks, setTasks] = useState([]);
@@ -97,123 +118,110 @@ const MaintenanceTaskLog: React.FC = () => {
           gap: "1em"
         }}
       >
-        {/* Status filter */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="status-filter"><strong>Status</strong></label>
-          <select id="status-filter" value={status} onChange={e => setStatus(e.target.value)} style={{ minWidth: 120 }}>
+        {/* Filter/search controls */}
+        <label>
+          Category:
+          <select value={category} onChange={e => setCategory(e.target.value)}>
+            <option value="">All</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat || "All"}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Status:
+          <select value={status} onChange={e => setStatus(e.target.value)}>
             <option value="">All</option>
             <option value="Pending">Pending</option>
             <option value="In-Progress">In-Progress</option>
             <option value="Done">Done</option>
           </select>
-        </div>
-        {/* Category filter */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="category-filter"><strong>Category</strong></label>
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            style={{ marginLeft: 4, marginRight: 12 }}
-          >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat || "All"}</option>
-            ))}
-          </select>
-        </div>
-        {/* Date range filters */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="from-date"><strong>From Date</strong></label>
-          <input id="from-date" type="date" value={from} onChange={e => setFrom(e.target.value)} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="to-date"><strong>To Date</strong></label>
-          <input id="to-date" type="date" value={to} onChange={e => setTo(e.target.value)} />
-        </div>
-        {/* Page size filter */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="page-size"><strong>Page Size</strong></label>
-          <select id="page-size" value={pageSize} onChange={e => setPageSize(Number(e.target.value))} style={{ minWidth: 80 }}>
-            {[5, 10, 20, 50].map(size => (
-              <option key={size} value={size}>{size}</option>
-            ))}
-          </select>
-        </div>
-        {/* Search and reset buttons */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5em" }}>
-          <button type="submit" style={{ padding: "0.5em 1em" }}>Search</button>
-          <button
-            type="button"
-            style={{ padding: "0.5em 1em" }}
-            onClick={() => {
-              setCategory("");
-              setStatus("");
-              setFrom("");
-              setTo("");
-              setPage(1);
-              setSearchTrigger(searchTrigger + 1);
-            }}
-          >Reset Filters</button>
-        </div>
+        </label>
+        <label>
+          From:
+          <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
+        </label>
+        <label>
+          To:
+          <input type="date" value={to} onChange={e => setTo(e.target.value)} />
+        </label>
+        <button type="submit" style={{ marginLeft: "1em" }}>Search</button>
       </form>
 
-      {/* Results table or no-results message */}
       {/* Results table or no-results message */}
       {tasks.length === 0 && (category || status || from || to)
         ? (<div style={{ margin: "1em 0", color: "#888" }}>No completed tasks found for the selected filters.</div>)
         : tasks.length > 0
-          ? (<table style={{ width: "100%", borderCollapse: "collapse", margin: "1em 0" }}>
-              <thead>
-                <tr style={{ background: "#f0f0f0" }}>
-                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Title</th>
-                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Category</th>
-                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Completed Date</th>
-                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Status</th>
-                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>User</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task: any) => (
-                  <tr key={task.id}>
-                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.title}</td>
-                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.category || "Uncategorized"}</td>
-                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
-                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>
-                      <select
-                        value={task.status}
-                        onChange={e => {
-                          const newStatus = e.target.value;
-                          const token = localStorage.getItem("token");
-                          fetch(`/api/tasks/${task.id}/status`, {
-                            method: "PUT",
-                            headers: {
-                              "Content-Type": "application/json",
-                              "Authorization": token ? `Bearer ${token}` : "",
-                            },
-                            body: JSON.stringify({ status: newStatus })
-                          })
-                            .then(res => {
-                              if (!res.ok) throw new Error("Failed to update status");
-                              setToast({ message: "Status updated successfully!", type: "success" });
-                              setSearchTrigger(searchTrigger + 1);
-                            })
-                            .catch(err => {
-                              setToast({ message: "Error updating status: " + err.message, type: "error" });
-                            });
-                        }}
-                        style={{ minWidth: 120 }}
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="In-Progress">In-Progress</option>
-                        <option value="Done">Done</option>
-                      </select>
-                    </td>
-                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.user?.email || "N/A"}</td>
+          ? (
+            <div style={{ width: "100%", overflowX: "auto", maxHeight: "500px", overflowY: "auto", margin: "1em 0", borderRadius: "8px", border: "1px solid #ccc" }}>
+              <table style={{ minWidth: 800, borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f0f0f0" }}>
+                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Title</th>
+                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Category</th>
+                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Completed Date</th>
+                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Status</th>
+                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>User</th>
+                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>)
-          : null
+                </thead>
+                <tbody>
+                  {tasks.map((task: any) => (
+                    <tr key={task.id}>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.title}</td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                        {/* Status dropdown for updating task status */}
+                        <select
+                          value={task.status}
+                          onChange={e => {
+                            const newStatus = e.target.value;
+                            const token = localStorage.getItem("token");
+                            fetch(`/api/tasks/${task.id}/status`, {
+                              method: "PUT",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": token ? `Bearer ${token}` : "",
+                              },
+                              body: JSON.stringify({ status: newStatus })
+                            })
+                              .then(res => {
+                                if (!res.ok) throw new Error("Failed to update status");
+                                setToast({ message: "Status updated successfully!", type: "success" });
+                                setSearchTrigger(searchTrigger + 1);
+                              })
+                              .catch(err => {
+                                setToast({ message: "Error updating status: " + String(err), type: "error" });
+                              });
+                          }}
+                          style={{ minWidth: 120 }}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="In-Progress">In-Progress</option>
+                          <option value="Done">Done</option>
+                        </select>
+                      </td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                        {/* Delete button for removing a task */}
+                        <button
+                          onClick={() => handleDelete(task.id)}
+                          style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
+                          title="Delete Task"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        : null
       }
+
       {/* Pagination controls */}
       <div style={{ marginBottom: "1em" }}>
         <button onClick={() => setPage(page - 1)} disabled={page === 1}>Previous</button>
