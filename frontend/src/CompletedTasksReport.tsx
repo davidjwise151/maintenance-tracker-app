@@ -4,19 +4,48 @@ import CreateTaskForm from "./CreateTaskForm";
 
 // CompletedTasksReport component displays a report/history view of completed maintenance tasks
 const CompletedTasksReport: React.FC = () => {
+  // State for summary counts
+  const [summary, setSummary] = useState({ open: 0, completed: 0 });
   // State for tasks and filter/search controls
   const [tasks, setTasks] = useState([]);
   const [category, setCategory] = useState(""); // Filter by category
-  const [status, setStatus] = useState("Done"); // Filter by status
+  const [status, setStatus] = useState(""); // Filter by status (blank by default)
   const [from, setFrom] = useState(""); // Filter by start date
   const [to, setTo] = useState(""); // Filter by end date
+  // Generic maintenance categories for dropdown
+  const categories = [
+    "",
+    "Plumbing",
+    "Flooring",
+    "Inspections",
+    "Electrical",
+    "HVAC",
+    "Landscaping",
+    "Painting",
+    "Other"
+  ];
   const [page, setPage] = useState(1); // Pagination: current page
   const [pageSize, setPageSize] = useState(5); // Pagination: page size
   const [total, setTotal] = useState(0); // Total number of results
   const [searchTrigger, setSearchTrigger] = useState(0); // Used to trigger search on filter change
 
-  // Fetch completed tasks from backend with filters and pagination
+  // Fetch completed tasks and summary counts from backend with filters and pagination
   const refreshTasks = () => {
+    // Only search if at least one filter is set
+    if (!category && !status && !from && !to) {
+      setTasks([]);
+      setTotal(0);
+      // Fetch summary counts for all tasks
+      fetch("/api/tasks/summary", {
+        headers: {
+          "Authorization": localStorage.getItem("token") ? `Bearer ${localStorage.getItem("token")}` : "",
+        },
+      })
+        .then(res => res.ok ? res.json() : { open: 0, completed: 0 })
+        .then(data => setSummary({ open: data.open || 0, completed: data.completed || 0 }))
+        .catch(() => setSummary({ open: 0, completed: 0 }));
+      return;
+    }
     const params = new URLSearchParams();
     if (category) params.append("category", category);
     if (status) params.append("status", status);
@@ -27,7 +56,7 @@ const CompletedTasksReport: React.FC = () => {
 
     // Get JWT token from localStorage for authentication
     const token = localStorage.getItem("token");
-    fetch(`/api/tasks/completed?${params.toString()}`, {
+  fetch(`/api/tasks/completed?${params.toString()}`, {
       headers: {
         "Authorization": token ? `Bearer ${token}` : "",
       },
@@ -39,6 +68,8 @@ const CompletedTasksReport: React.FC = () => {
       .then(data => {
         setTasks(data.tasks || []);
         setTotal(data.total || 0);
+        // Optionally update summary if returned
+        if (data.summary) setSummary(data.summary);
       })
       .catch(err => {
         setTasks([]);
@@ -48,7 +79,7 @@ const CompletedTasksReport: React.FC = () => {
       });
   };
 
-  // Refresh tasks when page, pageSize, or searchTrigger changes
+  // Refresh tasks only after search is triggered
   useEffect(() => {
     refreshTasks();
   }, [page, pageSize, searchTrigger]);
@@ -56,6 +87,12 @@ const CompletedTasksReport: React.FC = () => {
   // Render UI: filter form, results table, pagination
   return (
     <div>
+      {/* Summary section */}
+      <div style={{ marginBottom: "1em", padding: "1em", background: "#eef", borderRadius: "8px" }}>
+        <h3>Task Summary</h3>
+        <div><strong>Open Tasks:</strong> {summary.open}</div>
+        <div><strong>Completed Tasks:</strong> {summary.completed}</div>
+      </div>
       {/* Form to create new tasks; triggers refresh on creation */}
       <CreateTaskForm onTaskCreated={refreshTasks} />
       <h2>Completed Tasks Report</h2>
@@ -90,7 +127,15 @@ const CompletedTasksReport: React.FC = () => {
         {/* Category filter */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <label htmlFor="category-filter"><strong>Category</strong></label>
-          <input id="category-filter" value={category} onChange={e => setCategory(e.target.value)} placeholder="Category" style={{ minWidth: 120 }} />
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            style={{ marginLeft: 4, marginRight: 12 }}
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat || "All"}</option>
+            ))}
+          </select>
         </div>
         {/* Date range filters */}
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -118,7 +163,7 @@ const CompletedTasksReport: React.FC = () => {
             style={{ padding: "0.5em 1em" }}
             onClick={() => {
               setCategory("");
-              setStatus("Done");
+              setStatus("");
               setFrom("");
               setTo("");
               setPage(1);
@@ -129,32 +174,34 @@ const CompletedTasksReport: React.FC = () => {
       </form>
 
       {/* Results table or no-results message */}
-      {tasks.length === 0 ? (
-        <div style={{ margin: "1em 0", color: "#888" }}>No completed tasks found for the selected filters.</div>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", margin: "1em 0" }}>
-          <thead>
-            <tr style={{ background: "#f0f0f0" }}>
-              <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Title</th>
-              <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Category</th>
-              <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Completed Date</th>
-              <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Status</th>
-              <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>User</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((task: any) => (
-              <tr key={task.id}>
-                <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.title}</td>
-                <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.category || "Uncategorized"}</td>
-                <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
-                <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.status}</td>
-                <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.user?.email || "N/A"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {/* Results table or no-results message */}
+      {tasks.length === 0 && (category || status || from || to)
+        ? (<div style={{ margin: "1em 0", color: "#888" }}>No completed tasks found for the selected filters.</div>)
+        : tasks.length > 0
+          ? (<table style={{ width: "100%", borderCollapse: "collapse", margin: "1em 0" }}>
+              <thead>
+                <tr style={{ background: "#f0f0f0" }}>
+                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Title</th>
+                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Category</th>
+                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Completed Date</th>
+                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>Status</th>
+                  <th style={{ border: "1px solid #ccc", padding: "0.5em" }}>User</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tasks.map((task: any) => (
+                  <tr key={task.id}>
+                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.title}</td>
+                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.category || "Uncategorized"}</td>
+                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
+                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.status}</td>
+                    <td style={{ border: "1px solid #ccc", padding: "0.5em" }}>{task.user?.email || "N/A"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>)
+          : null
+      }
       {/* Pagination controls */}
       <div style={{ marginBottom: "1em" }}>
         <button onClick={() => setPage(page - 1)} disabled={page === 1}>Previous</button>
