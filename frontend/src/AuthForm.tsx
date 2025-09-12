@@ -19,6 +19,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
     setMessage("");
     console.log("API URL:", process.env.REACT_APP_API_URL);
     const endpoint = `${process.env.REACT_APP_API_URL}/api/auth/${mode}`;
+    console.log("Endpoint:", endpoint);
     try {
       const res = await fetch(endpoint, {
         method: "POST",
