@@ -85,5 +85,5 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
     </div>
   );
 };
-
+ 
 export default AuthForm;
