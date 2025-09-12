@@ -75,7 +75,18 @@ This project demonstrates fast, iterative development with a focus on code quali
 
 ---
 
-## Setup & Usage
+
+## Cloud Environment Variables
+
+**Frontend (Vercel):**
+- Set `REACT_APP_API_URL` in the Vercel dashboard to your backend URL (e.g., `https://maintenance-tracker-app.onrender.com`).
+- Vercel only injects environment variables at build time. Local `.env` files are ignored in production.
+- After changing variables, trigger a new deployment.
+
+**Backend (Render):**
+- Set `JWT_SECRET` and any other secrets in the Render dashboard.
+- Never commit real secrets to source control.
+
 
 1. **Install dependencies:**  
    Run `npm install` in both `backend` and `frontend` directories.

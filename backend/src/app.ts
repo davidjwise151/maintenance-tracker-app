@@ -12,7 +12,8 @@ const app = express();
 
 const allowedOrigins = [
   'https://maintenance-tracker-app.vercel.app',
-  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/
+  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/,
+  'http://localhost:3000', // Allow localhost for development
 ];
 
 app.use(cors({

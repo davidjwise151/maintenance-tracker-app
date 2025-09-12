@@ -15,27 +15,6 @@ const router = Router();
  * Response:
  *   The updated task object.
  */
-router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  if (!status || !["Pending", "In-Progress", "Done"].includes(status)) {
-    return res.status(400).json({ error: "Invalid status value." });
-  }
-  const taskRepo = AppDataSource.getRepository(Task);
-  const task = await taskRepo.findOneBy({ id });
-  if (!task) {
-    return res.status(404).json({ error: "Task not found." });
-  }
-  task.status = status;
-  // If status is set to Done, update completedAt; otherwise, clear it
-  if (status === "Done") {
-    task.completedAt = Date.now();
-  } else {
-    task.completedAt = undefined;
-  }
-  await taskRepo.save(task);
-  res.json(task);
-});
 
 
 /**
