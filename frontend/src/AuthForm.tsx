@@ -16,21 +16,35 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setMessage("");
     const endpoint = `${process.env.REACT_APP_API_URL}/api/auth/${mode}`;
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (res.ok && mode === "login" && data.token) {
-      localStorage.setItem("token", data.token);
-      setMessage("Login successful!");
-      if (onLoginSuccess) onLoginSuccess();
-    } else if (res.ok && mode === "register") {
-      setMessage("Registration successful! You can now log in.");
-      setMode("login");
-    } else {
-      setMessage(data.error || "Error");
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      let data;
+      if (res.ok) {
+        data = await res.json();
+      } else {
+        // Try to parse error, or fallback to status text
+        try {
+          data = await res.json();
+        } catch {
+          data = { error: res.statusText || `HTTP ${res.status}` };
+        }
+      }
+      if (res.ok && mode === "login" && data.token) {
+        localStorage.setItem("token", data.token);
+        setMessage("Login successful!");
+        if (onLoginSuccess) onLoginSuccess();
+      } else if (res.ok && mode === "register") {
+        setMessage("Registration successful! You can now log in.");
+        setMode("login");
+      } else {
+        setMessage(data.error || "Error");
+      }
+    } catch (err) {
+      setMessage("Network error");
     }
   };
 
