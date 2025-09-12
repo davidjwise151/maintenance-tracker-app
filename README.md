@@ -85,15 +85,29 @@ This project demonstrates fast, iterative development with a focus on code quali
    No manual setup required for local development.
 
 3. **Environment Variables:**  
-   - Backend: Create a `.env` file with `JWT_SECRET=your_jwt_secret`
+   - Backend: Create a `.env` file with `JWT_SECRET=your_jwt_secret` for local development.
+   - **Cloud Deployment:** Set environment variables (e.g., `JWT_SECRET`) securely in the Render or Vercel dashboard. Do NOT commit secrets to source control.
    - TypeORM and SQLite are pre-configured for development.
 
-4. **Run the app:**  
+4. **Run the app locally:**  
    - Backend: `npm run dev` (auto-restarts with nodemon)
    - Frontend: `npm start`
 
+5. **Cloud Deployment:**
+   - **Render (Backend):**
+     - Push your code to GitHub.
+     - Create a new Web Service on Render, point to your backend folder/repo.
+     - Set build command: `npm install && npm run build`
+     - Set start command: `npm start`
+     - Add environment variables (e.g., `JWT_SECRET`) in the Render dashboard.
+     - Your backend will be available at `https://maintenance-tracker-app.onrender.com/` (or your Render URL).
+   - **Vercel (Frontend):**
+     - Import your frontend repo/folder in Vercel.
+     - Vercel will auto-detect React and build with `npm run build`.
+     - Set environment variables (if needed) in Vercel dashboard.
+     - For API calls, use your Render backend URL in production.
 
-5. **Testing:**  
+6. **Testing:**  
    - Register and log in to create users.
    - Tasks are stored securely in the database.
    - Use the Completed Tasks Report to verify reporting and filtering features.
