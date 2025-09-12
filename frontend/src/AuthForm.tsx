@@ -13,7 +13,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
-    const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+    const apiBase = process.env.REACT_APP_API_URL || "https://maintenance-tracker-app.onrender.com";
+    const endpoint = mode === "login"
+      ? `${apiBase}/api/auth/login`
+      : `${apiBase}/api/auth/register`;
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
