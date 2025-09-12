@@ -17,9 +17,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
-    console.log("API URL:", process.env.REACT_APP_API_URL);
-  const endpoint = `https://maintenance-tracker-app.onrender.com/api/auth/${mode}`;
-    console.log("Endpoint:", endpoint);
+    const endpoint = `https://maintenance-tracker-app.onrender.com/api/auth/${mode}`;
+    console.log(`[AuthForm Debug] API URL: https://maintenance-tracker-app.onrender.com`);
+    console.log(`[AuthForm Debug] Endpoint: ${endpoint}`);
+    console.log(`[AuthForm Debug] Mode: ${mode}`);
+    console.log(`[AuthForm Debug] Email: ${email}`);
     try {
       const res = await fetch(endpoint, {
         method: "POST",
@@ -29,12 +31,15 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
       let data;
       if (res.ok) {
         data = await res.json();
+        console.log(`[AuthForm Debug] Success response:`, data);
       } else {
         // Try to parse error, or fallback to status text
         try {
           data = await res.json();
+          console.log(`[AuthForm Debug] Error response:`, data);
         } catch {
           data = { error: res.statusText || `HTTP ${res.status}` };
+          console.log(`[AuthForm Debug] Error response (non-JSON):`, data);
         }
       }
       if (res.ok && mode === "login" && data.token) {
@@ -45,9 +50,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
         setMessage("Registration successful! You can now log in.");
         setMode("login");
       } else {
-        setMessage(data.error || "Error");
+        // Show detailed error from backend if available
+        setMessage(data.error || (data.errors ? data.errors.map((e:any) => e.msg).join(", ") : "Unknown error"));
       }
     } catch (err) {
+      console.log(`[AuthForm Debug] Network error:`, err);
       setMessage("Network error");
     }
   };
