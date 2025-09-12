@@ -5,7 +5,7 @@ type Mode = "login" | "register";
 interface AuthFormProps {
   onLoginSuccess?: () => void;
 }
-
+ 
 const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
