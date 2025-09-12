@@ -18,7 +18,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setMessage("");
     console.log("API URL:", process.env.REACT_APP_API_URL);
-    const endpoint = `${process.env.REACT_APP_API_URL}/api/auth/${mode}`;
+  const endpoint = `https://maintenance-tracker-app.onrender.com/api/auth/${mode}`;
     console.log("Endpoint:", endpoint);
     try {
       const res = await fetch(endpoint, {
