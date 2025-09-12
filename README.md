@@ -96,15 +96,18 @@ This project demonstrates fast, iterative development with a focus on code quali
    - Backend: Create a `.env` file with `JWT_SECRET=your_jwt_secret`
    - TypeORM and SQLite are pre-configured for development.
 
-4. **Run the app:**  
-   - Backend: `npm run dev` (auto-restarts with nodemon)
-   - Frontend: `npm start`
+4. **Run the app (recommended):**  
+   - From the project root, run `npm start` to launch both backend and frontend in parallel (requires `npm-run-all`).
+   - This will start the backend (`npm run dev` in `backend/`) and frontend (`npm start` in `frontend/`) automatically.
 
+   **Manual method:**
+   - Backend: `cd backend && npm run dev` (auto-restarts with nodemon)
+   - Frontend: `cd frontend && npm start`
 
 5. **Testing:**  
    - Register and log in to create users.
    - Tasks are stored securely in the database.
-   - Use the Completed Tasks Report to verify reporting and filtering features.
+   - Use the Maintenance Task Log to verify reporting and filtering features.
 
 ---
 
