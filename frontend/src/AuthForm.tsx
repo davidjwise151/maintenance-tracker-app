@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 
 type Mode = "login" | "register";
-
 interface AuthFormProps {
   onLoginSuccess?: () => void;
 }
-
 const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -15,7 +13,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
-    const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+    const apiBase = process.env.REACT_APP_API_URL || "https://maintenance-tracker-app.onrender.com";
+    const endpoint = mode === "login"
+      ? `${apiBase}/api/auth/login`
+      : `${apiBase}/api/auth/register`;
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -33,7 +34,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
       setMessage(data.error || "Error");
     }
   };
-
   return (
     <div>
       <h2>{mode === "login" ? "Login" : "Register"}</h2>
@@ -54,7 +54,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
         /><br />
         <button type="submit">{mode === "login" ? "Login" : "Register"}</button>
       </form>
-      <button onClick={() => setMode(mode === "login" ? "register" : "login")}>
+      <button onClick={() => setMode(mode === "login" ? "register" : "login")}> 
         {mode === "login" ? "Need an account? Register" : "Already have an account? Login"}
       </button>
       <div>{message}</div>

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import authRoutes from "./routes/auth";
@@ -10,7 +11,22 @@ import { authenticateJWT } from "./middleware/auth";
  */
 const app = express();
 
-app.use(cors()); // Enable Cross-Origin Resource Sharing
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://maintenance-tracker-app.vercel.app',
+  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+})); // Secure CORS for production, Vercel preview, and localhost
 app.use(express.json()); // Parse JSON request bodies
 
 // Mount authentication routes at /api/auth

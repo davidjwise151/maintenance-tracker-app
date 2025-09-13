@@ -34,7 +34,8 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
       return;
     }
     try {
-      const res = await fetch("/api/tasks", {
+  const apiBase = process.env.REACT_APP_API_URL || "";
+  const res = await fetch(`${apiBase}/api/tasks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

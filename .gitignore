@@ -1,14 +1,14 @@
-# Node
+# Node.js dependencies and build output
 node_modules/
 dist/
 .env
-%APPDATA%
+dev.db
 
-# React
+# React build output
 build/
 
 # Logs
 *.log
 
-dev.db
+# IDE/editor settings
 .vscode/

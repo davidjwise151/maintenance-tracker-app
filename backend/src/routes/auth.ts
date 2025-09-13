@@ -11,7 +11,10 @@ import { User } from "../entity/User";
  * Passwords are hashed before storage. JWT is used for authentication.
  */
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is not set. Please set it in your cloud provider dashboard.");
+}
 
 /**
  * @route   POST /api/auth/register
@@ -28,6 +31,7 @@ router.post(
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
   ],
   async (req: Request, res: Response) => {
+    console.log("Register request body:", req.body); // Add this line
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -38,13 +42,11 @@ router.post(
     const existingUser = await userRepo.findOneBy({ email });
     // Prevent duplicate registration
     if (existingUser) return res.status(400).json({ error: "User already exists" });
-    // Hash password before storing
-    const hashed = await bcrypt.hash(password, 10);
-    // Generate a simple unique user ID
-    const id = Math.random().toString(36).substr(2, 9);
-    // ... Save the new user to the database
-    await userRepo.save({ email, password: hashed, id });
-    res.json({ message: "Registered", email, id });
+  // Hash password before storing
+  const hashed = await bcrypt.hash(password, 10);
+  // Save the new user to the database, letting TypeORM handle UUID
+  const newUser = await userRepo.save({ email, password: hashed });
+  res.json({ message: "Registered", email: newUser.email, id: newUser.id });
   }
 );
 
@@ -63,6 +65,7 @@ router.post(
     body("password").notEmpty().withMessage("Password required"),
   ],
   async (req: Request, res: Response) => {
+    console.log("Login request body:", req.body); // Add this line
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

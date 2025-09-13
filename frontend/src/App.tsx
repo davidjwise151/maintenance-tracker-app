@@ -32,7 +32,8 @@ function App() {
       return;
     }
     try {
-      const res = await fetch("/api/protected", {
+  const apiBase = process.env.REACT_APP_API_URL || "";
+  const res = await fetch(`${apiBase}/api/protected`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401 || res.status === 403) {

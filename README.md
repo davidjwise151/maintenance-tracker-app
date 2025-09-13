@@ -27,10 +27,6 @@ Maintenance Tracker App is a modern web application built with React, Node.js, a
 ## Maintenance Task Log
 
 ### Overview
-The app now includes a log/history view for all maintenance tasks. Users can:
-- View all tasks in a sortable, paginated table
-- Filter by date range, category, and status (Pending, In-Progress, Done)
-- See task details and associated user
 
 ### How to Use
 1. Log in to the app.
@@ -38,7 +34,6 @@ The app now includes a log/history view for all maintenance tasks. Users can:
 3. Use the filter form to search by status (Pending, In-Progress, Done, All), category, date range, and page size.
 4. Results are shown in a table with pagination controls.
 
-### Backend API
 **Endpoint:** `GET /api/tasks/completed`
 
 **Query Parameters:**
@@ -55,10 +50,7 @@ The app now includes a log/history view for all maintenance tasks. Users can:
 {
    tasks: [
       {
-         id, title, category, completedAt, status,
-         user: { id, email } | null
       }
-   ],
    total: number,
    page: number,
    pageSize: number
@@ -83,7 +75,18 @@ This project demonstrates fast, iterative development with a focus on code quali
 
 ---
 
-## Setup & Usage
+
+## Cloud Environment Variables
+
+**Frontend (Vercel):**
+- Set `REACT_APP_API_URL` in the Vercel dashboard to your backend URL (e.g., `https://maintenance-tracker-app.onrender.com`).
+- Vercel only injects environment variables at build time. Local `.env` files are ignored in production.
+- After changing variables, trigger a new deployment.
+
+**Backend (Render):**
+- Set `JWT_SECRET` and any other secrets in the Render dashboard.
+- Never commit real secrets to source control.
+
 
 1. **Install dependencies:**  
    Run `npm install` in both `backend` and `frontend` directories.
@@ -93,21 +96,32 @@ This project demonstrates fast, iterative development with a focus on code quali
    No manual setup required for local development.
 
 3. **Environment Variables:**  
-   - Backend: Create a `.env` file with `JWT_SECRET=your_jwt_secret`
+   - Backend: Create a `.env` file with `JWT_SECRET=your_jwt_secret` for local development.
+   - **Cloud Deployment:** Set environment variables (e.g., `JWT_SECRET`) securely in the Render or Vercel dashboard. Do NOT commit secrets to source control.
    - TypeORM and SQLite are pre-configured for development.
 
-4. **Run the app (recommended):**  
-   - From the project root, run `npm start` to launch both backend and frontend in parallel (requires `npm-run-all`).
-   - This will start the backend (`npm run dev` in `backend/`) and frontend (`npm start` in `frontend/`) automatically.
+4. **Run the app locally:**  
+   - Backend: `npm run dev` (auto-restarts with nodemon)
+   - Frontend: `npm start`
 
-   **Manual method:**
-   - Backend: `cd backend && npm run dev` (auto-restarts with nodemon)
-   - Frontend: `cd frontend && npm start`
+5. **Cloud Deployment:**
+   - **Render (Backend):**
+     - Push your code to GitHub.
+     - Create a new Web Service on Render, point to your backend folder/repo.
+     - Set build command: `npm install && npm run build`
+     - Set start command: `npm start`
+     - Add environment variables (e.g., `JWT_SECRET`) in the Render dashboard.
+     - Your backend will be available at `https://maintenance-tracker-app.onrender.com/` (or your Render URL).
+   - **Vercel (Frontend):**
+     - Import your frontend repo/folder in Vercel.
+     - Vercel will auto-detect React and build with `npm run build`.
+     - Set environment variables (if needed) in Vercel dashboard.
+     - For API calls, use your Render backend URL in production.
 
-5. **Testing:**  
+6. **Testing:**  
    - Register and log in to create users.
    - Tasks are stored securely in the database.
-   - Use the Maintenance Task Log to verify reporting and filtering features.
+   - Use the Completed Tasks Report to verify reporting and filtering features.
 
 ---
 
