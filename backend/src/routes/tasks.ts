@@ -10,7 +10,7 @@ const router = Router();
  * DELETE /api/tasks/:id
  * Deletes a specific task owned by the authenticated user.
  * Requires authentication (JWT).
- * Response: { success: true } or { error: string }
+ * Returns: { success: true } or { error: string }
  */
 router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -37,8 +37,7 @@ router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
  * Request Body:
  *   - status: string (required) — new status value (Pending, In-Progress, Done)
  * Requires authentication (JWT).
- * Response:
- *   The updated task object.
+ * Returns: The updated task object or error
  */
 router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -53,11 +52,7 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   }
   task.status = status;
   // If status is set to Done, update completedAt; otherwise, clear it
-  if (status === "Done") {
-    task.completedAt = Date.now();
-  } else {
-    task.completedAt = undefined;
-  }
+  task.completedAt = status === "Done" ? Date.now() : undefined;
   await taskRepo.save(task);
   res.json(task);
 });
@@ -75,18 +70,7 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
  *   - pageSize: number (optional, default: 20) — number of tasks per page
  *   - sort: "asc" | "desc" (optional, default: "desc") — sort order by completed date
  * Requires authentication (JWT).
- * Response:
- *   {
- *     tasks: [
- *       {
- *         id, title, category, completedAt, status,
- *         user: { id, email } | null
- *       }
- *     ],
- *     total: number,
- *     page: number,
- *     pageSize: number
- *   }
+ * Returns: Paginated, filtered list of completed tasks
  */
 router.get("/completed", authenticateJWT, async (req: Request, res: Response) => {
   // Extract query parameters for filtering and pagination
@@ -94,41 +78,41 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
   const taskRepo = AppDataSource.getRepository(Task);
 
   // Build query for completed tasks, joining user info
-    let query = taskRepo.createQueryBuilder("task")
-      .leftJoinAndSelect("task.user", "user");
-  
-    // Apply status filter only if a specific status is selected (not blank or 'All')
-    if (status && status !== 'All') {
-        query = query.andWhere("task.status = :status", { status });
-    }
-    if (category) query = query.andWhere("task.category = :category", { category });
-    if (from) query = query.andWhere("task.completedAt >= :from", { from });
-    if (to) query = query.andWhere("task.completedAt <= :to", { to });
-  
-    // Sort results by completedAt date
-    query = query.orderBy("task.completedAt", sort === "asc" ? "ASC" : "DESC");
-  
-    // Apply pagination
-    const skip = (Number(page) - 1) * Number(pageSize);
-    query = query.skip(skip).take(Number(pageSize));
-  
-    // Execute query and get results
-    const [tasks, total] = await query.getManyAndCount();
-  
-    // Respond with filtered, paginated tasks
-    res.json({
-        tasks: tasks.map(task => ({
-            id: task.id,
-            title: task.title,
-            category: task.category,
-            completedAt: task.completedAt,
-            status: task.status,
-            user: task.user ? { id: task.user.id, email: task.user.email } : null,
-        })),
-        total,
-        page: Number(page),
-        pageSize: Number(pageSize)
-    });
+  let query = taskRepo.createQueryBuilder("task")
+    .leftJoinAndSelect("task.user", "user");
+
+  // Apply filters
+  if (status && status !== 'All') {
+    query = query.andWhere("task.status = :status", { status });
+  }
+  if (category) query = query.andWhere("task.category = :category", { category });
+  if (from) query = query.andWhere("task.completedAt >= :from", { from });
+  if (to) query = query.andWhere("task.completedAt <= :to", { to });
+
+  // Sort results by completedAt date
+  query = query.orderBy("task.completedAt", sort === "asc" ? "ASC" : "DESC");
+
+  // Apply pagination
+  const skip = (Number(page) - 1) * Number(pageSize);
+  query = query.skip(skip).take(Number(pageSize));
+
+  // Execute query and get results
+  const [tasks, total] = await query.getManyAndCount();
+
+  // Respond with filtered, paginated tasks
+  res.json({
+    tasks: tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      category: task.category,
+      completedAt: task.completedAt,
+      status: task.status,
+      user: task.user ? { id: task.user.id, email: task.user.email } : null,
+    })),
+    total,
+    page: Number(page),
+    pageSize: Number(pageSize)
+  });
 });
 
 
@@ -140,8 +124,7 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
  *   - category: string (optional) — task category
  *   - status: string (required) — task status (e.g., "Pending", "In-Progress", "Done")
  * Requires authentication (JWT).
- * Response:
- *   The created task object.
+ * Returns: The created task object or error
  */
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   // Extract task details from request body
@@ -151,7 +134,6 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
   if (!userId) {
-    // If no user ID, authentication failed
     return res.status(401).json({ error: "Unauthorized: No user ID in token." });
   }
 
@@ -161,7 +143,6 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   // Find the user by ID
   const user = await userRepo.findOneBy({ id: userId });
   if (!user) {
-    // If user not found, return error
     return res.status(400).json({ error: "User not found." });
   }
 
@@ -177,7 +158,6 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     user,
   });
   await taskRepo.save(task);
-  // Respond with the created task
   res.json(task);
 });
 
