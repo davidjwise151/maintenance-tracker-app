@@ -1,10 +1,44 @@
+
 import { Router, Request, Response } from "express";
 import { authenticateJWT } from "../middleware/auth";
 import { AppDataSource } from "../data-source";
 import { Task } from "../entity/Task";
 import { User } from "../entity/User";
+import { LessThan, MoreThan, Between, IsNull } from "typeorm";
 
 const router = Router();
+
+// GET /api/tasks/upcoming
+// Returns upcoming (due in next 14 days) and late (past due) tasks for the authenticated user
+router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => {
+  const taskRepo = AppDataSource.getRepository(Task);
+  const jwtUser = (req as any).user;
+  const userId = jwtUser && jwtUser.id;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized: No user ID in token." });
+  }
+  const now = Date.now();
+  const twoWeeksMs = 14 * 24 * 60 * 60 * 1000;
+  // Upcoming: dueDate between now and now+2weeks, not completed
+  const upcoming = await taskRepo.find({
+    where: {
+      user: { id: userId },
+      dueDate: Between(now, now + twoWeeksMs),
+      completedAt: IsNull(),
+    },
+    order: { dueDate: "ASC" },
+  });
+  // Late: dueDate before now, not completed
+  const late = await taskRepo.find({
+    where: {
+      user: { id: userId },
+      dueDate: LessThan(now),
+      completedAt: IsNull(),
+    },
+    order: { dueDate: "ASC" },
+  });
+  res.json({ upcoming, late });
+});
 
 /**
  * DELETE /api/tasks/:id

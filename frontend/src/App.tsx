@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { formatDateMMDDYYYY } from "./utils/dateUtils";
 import AuthForm from "./AuthForm";
 import MaintenanceTaskLog from "./MaintenanceTaskLog";
 import { ToastManagerProvider } from "./ToastManager";
@@ -23,6 +24,12 @@ function App() {
    * State for loading indicator when fetching protected route
    */
   const [loading, setLoading] = useState(false);
+
+  /**
+   * State for reminders (upcoming/late tasks)
+   */
+  const [reminders, setReminders] = useState<{ upcoming: any[]; late: any[] }>({ upcoming: [], late: [] });
+  const [remindersLoading, setRemindersLoading] = useState(false);
 
   /**
    * Handles sign out
@@ -81,6 +88,32 @@ function App() {
     setIsLoggedIn(true);
   }, []);
 
+  // Fetch reminders when logged in
+  useEffect(() => {
+    const fetchReminders = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      setRemindersLoading(true);
+      try {
+        const apiBase = process.env.REACT_APP_API_URL || "";
+        const res = await fetch(`${apiBase}/api/tasks/upcoming`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setReminders({ upcoming: data.upcoming || [], late: data.late || [] });
+        } else {
+          setReminders({ upcoming: [], late: [] });
+        }
+      } catch {
+        setReminders({ upcoming: [], late: [] });
+      } finally {
+        setRemindersLoading(false);
+      }
+    };
+    if (isLoggedIn) fetchReminders();
+  }, [isLoggedIn]);
+
   return (
     <ToastManagerProvider>
       <div style={{ position: "relative", minHeight: "100vh", background: "#f9f9f9" }}>
@@ -109,6 +142,40 @@ function App() {
           </button>
         )}
         <div style={{ maxWidth: 600, margin: "4em auto 2em auto", padding: "2em", borderRadius: 16, background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+          {/* Reminders Section */}
+          {isLoggedIn && (
+            <div style={{ marginBottom: "2em" }}>
+              <h3 style={{ fontSize: "1.2rem", fontWeight: 600, color: "#222" }}>Reminders</h3>
+              {remindersLoading ? (
+                <div style={{ color: "#888" }}>Loading reminders...</div>
+              ) : reminders.upcoming.length === 0 && reminders.late.length === 0 ? (
+                <div style={{ color: "#888" }}>No upcoming or late tasks.</div>
+              ) : (
+                <>
+                  {reminders.late.length > 0 && (
+                    <div style={{ color: "#e74c3c", marginBottom: 8 }}>
+                      <strong>Late Tasks:</strong>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {reminders.late.map((task, idx) => (
+                          <li key={task.id || idx}>{task.title} (Due: {task.dueDate ? formatDateMMDDYYYY(new Date(task.dueDate)) : "N/A"})</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {reminders.upcoming.length > 0 && (
+                    <div style={{ color: "#2980b9" }}>
+                      <strong>Upcoming Tasks:</strong>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {reminders.upcoming.map((task, idx) => (
+                          <li key={task.id || idx}>{task.title} (Due: {task.dueDate ? formatDateMMDDYYYY(new Date(task.dueDate)) : "N/A"})</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
           <header style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2em" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
