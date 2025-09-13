@@ -4,13 +4,15 @@ import CreateTaskForm from "./CreateTaskForm";
 import Toast from "./Toast";
 
 
-// Helper function for MM/DD/YYYY formatting
-function formatDateMMDDYYYY(date: number | string): string {
+// Helper function for DD/MM/YYYY formatting
+// Helper function for DD/MM/YYYY formatting
+function formatDateDDMMYYYY(date: number | string): string {
   const d = new Date(date);
-  const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+  if (isNaN(d.getTime())) return '';
   const dd = d.getDate().toString().padStart(2, '0');
+  const mm = (d.getMonth() + 1).toString().padStart(2, '0');
   const yyyy = d.getFullYear().toString();
-  return mm + '/' + dd + '/' + yyyy;
+  return dd + '/' + mm + '/' + yyyy;
 }
 
 /**
@@ -77,20 +79,35 @@ const MaintenanceTaskLog: React.FC = () => {
    */
   const refreshTasks = () => {
     const params = new URLSearchParams();
-  if (category) params.append("category", category);
-  if (status) params.append("status", status);
-  if (from) params.append("from", from);
-  if (to) {
-    const toDate = new Date(to);
-    toDate.setHours(23, 59, 59, 999);
-    params.append("to", toDate.getTime().toString());
-  }
-    if (dueFrom) params.append("dueFrom", new Date(dueFrom).getTime().toString());
+    if (category) params.append("category", category);
+    if (status) params.append("status", status);
+    // Completed date filter: 'from' is start, 'to' is inclusive end of selected day
+    // Helper to parse MM/DD/YYYY string to Date
+    // Date input fields return yyyy-mm-dd, so parse accordingly
+    function parseDateInput(str: string, endOfDay = false): Date | null {
+      if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+      const [yyyy, mm, dd] = str.split('-').map(Number);
+      const d = new Date(yyyy, mm - 1, dd);
+      if (endOfDay) d.setHours(23, 59, 59, 999); else d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    // Completed date filter: 'from' is start of day, 'to' is end of day (inclusive)
+    if (from) {
+      const fromDate = parseDateInput(from);
+      if (fromDate) params.append("from", fromDate.getTime().toString());
+    }
+    if (to) {
+      const toDate = parseDateInput(to, true);
+      if (toDate) params.append("to", toDate.getTime().toString());
+    }
+    // Due date filter: 'dueFrom' is start of day, 'dueTo' is end of day (inclusive)
+    if (dueFrom) {
+      const dueFromDate = parseDateInput(dueFrom);
+      if (dueFromDate) params.append("dueFrom", dueFromDate.getTime().toString());
+    }
     if (dueTo) {
-  // Set to end of selected day for inclusivity
-    const dueToDate = new Date(dueTo);
-    dueToDate.setHours(23, 59, 59, 999);
-    params.append("dueTo", dueToDate.getTime().toString());
+      const dueToDate = parseDateInput(dueTo, true);
+      if (dueToDate) params.append("dueTo", dueToDate.getTime().toString());
     }
     params.append("page", String(page));
     params.append("pageSize", String(pageSize));
@@ -184,22 +201,22 @@ const MaintenanceTaskLog: React.FC = () => {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
           <label><strong>Completed From</strong>
-            <input type="date" value={from} onChange={e => setFrom(e.target.value)} placeholder="MM/DD/YYYY" />
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
           </label>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
           <label><strong>Completed To</strong>
-            <input type="date" value={to} onChange={e => setTo(e.target.value)} placeholder="MM/DD/YYYY" />
+            <input type="date" value={to} onChange={e => setTo(e.target.value)} />
           </label>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
           <label><strong>Due Date From</strong>
-            <input type="date" value={dueFrom} onChange={e => setDueFrom(e.target.value)} placeholder="MM/DD/YYYY" />
+            <input type="date" value={dueFrom} onChange={e => setDueFrom(e.target.value)} />
           </label>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
           <label><strong>Due Date To</strong>
-            <input type="date" value={dueTo} onChange={e => setDueTo(e.target.value)} placeholder="MM/DD/YYYY" />
+            <input type="date" value={dueTo} onChange={e => setDueTo(e.target.value)} />
           </label>
         </div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: "1em" }}>
@@ -247,14 +264,14 @@ const MaintenanceTaskLog: React.FC = () => {
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         {(typeof task.dueDate === "number" && task.dueDate > 0)
-                          ? formatDateMMDDYYYY(task.dueDate)
+                          ? formatDateDDMMYYYY(task.dueDate)
                           : (typeof task.dueDate === "string" && !isNaN(Date.parse(task.dueDate))
-                            ? formatDateMMDDYYYY(task.dueDate)
+                            ? formatDateDDMMYYYY(task.dueDate)
                             : <span style={{color: '#888'}}>No due date</span>)}
                       </td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         {task.completedAt
-                          ? formatDateMMDDYYYY(task.completedAt)
+                          ? formatDateDDMMYYYY(task.completedAt)
                           : "N/A"}
 
                       </td>
