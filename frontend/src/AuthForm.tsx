@@ -27,7 +27,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
-    const apiBase = process.env.REACT_APP_API_URL || "";
+  const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000";
     const endpoint = mode === "login"
       ? `${apiBase}/api/auth/login`
       : `${apiBase}/api/auth/register`;

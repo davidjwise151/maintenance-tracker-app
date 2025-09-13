@@ -54,7 +54,15 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   // If status is set to Done, update completedAt; otherwise, clear it
   task.completedAt = status === "Done" ? Date.now() : undefined;
   await taskRepo.save(task);
-  res.json(task);
+  res.json({
+    id: task.id,
+    title: task.title,
+    category: task.category,
+    dueDate: task.dueDate,
+    completedAt: task.completedAt,
+    status: task.status,
+    user: task.user,
+  });
 });
 
 
@@ -105,8 +113,9 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
       id: task.id,
       title: task.title,
       category: task.category,
-      completedAt: task.completedAt,
       status: task.status,
+  dueDate: task.dueDate,
+      completedAt: task.completedAt,
       user: task.user ? { id: task.user.id, email: task.user.email } : null,
     })),
     total,
@@ -127,8 +136,8 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
  * Returns: The created task object or error
  */
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
-  // Extract task details from request body
   const { title, category, status, dueDate } = req.body;
+  console.log('Received dueDate from request body:', dueDate);
 
   // Get userId from JWT payload (added by authenticateJWT middleware)
   const jwtUser = (req as any).user;
@@ -158,8 +167,19 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     completedAt,
     user,
   });
+  console.log('Task entity before save:', task);
+  const savedTask = await taskRepo.findOneBy({ id: task.id });
+  console.log('Task entity after save:', savedTask);
   await taskRepo.save(task);
-  res.json(task);
+  res.json({
+    id: task.id,
+    title: task.title,
+    category: task.category,
+    status: task.status,
+    dueDate: task.dueDate,
+    completedAt: task.completedAt,
+    user: task.user,
+  });
 });
 
 export default router;

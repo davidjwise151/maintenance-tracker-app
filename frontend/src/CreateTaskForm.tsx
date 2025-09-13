@@ -54,8 +54,10 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
       return;
     }
     try {
-  const apiBase = process.env.REACT_APP_API_URL || "";
-  const res = await fetch(`${apiBase}/api/tasks`, {
+      const apiBase = process.env.REACT_APP_API_URL || "";
+      // Always send dueDate, even if blank
+      let dueDateValue = dueDate ? new Date(dueDate).getTime() : null;
+      const res = await fetch(`${apiBase}/api/tasks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,7 +67,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
           title,
           category,
           status,
-          dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
+          dueDate: dueDateValue,
         }),
       });
       const data = await res.json();

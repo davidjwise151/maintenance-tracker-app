@@ -96,8 +96,16 @@ const MaintenanceTaskLog: React.FC = () => {
   // Refresh tasks only after search is triggered or pagination changes
   useEffect(() => {
     refreshTasks();
+    // Debug: log tasks after fetch
+    // This will log the tasks array every time it changes
     // eslint-disable-next-line
   }, [page, pageSize, searchTrigger]);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      console.log('Fetched tasks:', tasks);
+    }
+  }, [tasks]);
 
   /**
    * Renders UI: filter form, results table, pagination, and toast notifications.
@@ -182,7 +190,11 @@ const MaintenanceTaskLog: React.FC = () => {
                     <tr key={task.id}>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.title}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}</td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                        {(typeof task.dueDate === "number" && task.dueDate > 0) ? new Date(task.dueDate).toLocaleDateString() :
+                          (typeof task.dueDate === "string" && !isNaN(Date.parse(task.dueDate)) ? new Date(task.dueDate).toLocaleDateString() :
+                            <span style={{color: '#888'}}>No due date</span>)}
+                      </td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         <select

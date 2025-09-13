@@ -12,3 +12,4 @@ build/
 
 # IDE/editor settings
 .vscode/
+backend/dev.db.bak
