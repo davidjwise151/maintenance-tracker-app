@@ -2,9 +2,17 @@ import React, { useState, useEffect } from "react";
 import CreateTaskForm from "./CreateTaskForm";
 import Toast from "./Toast";
 
-// MaintenanceTaskLog component displays a log/history view of all maintenance tasks
+/**
+ * MaintenanceTaskLog component displays a log/history view of all maintenance tasks.
+ * - Allows filtering by category, status, date range, and pagination.
+ * - Supports task creation, status updates, and deletion.
+ * - Shows feedback via toast notifications.
+ */
 const MaintenanceTaskLog: React.FC = () => {
-  // Handles task deletion with confirmation and feedback
+  /**
+   * Handles task deletion with confirmation and feedback.
+   * Calls backend API to delete and updates UI.
+   */
   const handleDelete = async (taskId: string) => {
     if (!window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
     const token = localStorage.getItem("token");
@@ -33,7 +41,7 @@ const MaintenanceTaskLog: React.FC = () => {
   const [status, setStatus] = useState(""); // Filter by status (blank means All)
   const [from, setFrom] = useState(""); // Filter by start date
   const [to, setTo] = useState(""); // Filter by end date
-  // Generic maintenance categories for dropdown
+  // Maintenance categories for dropdown
   const categories = [
     "",
     "Plumbing",
@@ -51,7 +59,10 @@ const MaintenanceTaskLog: React.FC = () => {
   const [searchTrigger, setSearchTrigger] = useState(0); // Used to trigger search on filter change
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Fetch completed tasks and summary counts from backend with filters and pagination
+  /**
+   * Fetch completed tasks from backend with filters and pagination.
+   * Updates tasks and total count in state.
+   */
   const refreshTasks = () => {
     const params = new URLSearchParams();
     if (category) params.append("category", category);
@@ -83,24 +94,26 @@ const MaintenanceTaskLog: React.FC = () => {
       });
   };
 
-  // Refresh tasks only after search is triggered
+  // Refresh tasks only after search is triggered or pagination changes
   useEffect(() => {
     refreshTasks();
     // eslint-disable-next-line
   }, [page, pageSize, searchTrigger]);
 
-  // Render UI: filter form, results table, pagination
+  /**
+   * Renders UI: filter form, results table, pagination, and toast notifications.
+   */
   return (
     <div>
-      {/* Form to create new tasks; triggers refresh on creation */}
+  {/* CreateTaskForm: triggers refresh on new task creation */}
       <CreateTaskForm onTaskCreated={refreshTasks} />
       <h2>Maintenance Task Log</h2>
-      {/* Results counter */}
+  {/* Results counter */}
       <div style={{ marginBottom: "0.5em", fontWeight: "bold" }}>
         Showing {tasks.length} result{tasks.length !== 1 ? "s" : ""}
         {total > tasks.length ? ` (of ${total} total)` : ""}
       </div>
-      {/* Filter/search form */}
+  {/* Filter/search form */}
       <form
         onSubmit={e => {
           e.preventDefault();
@@ -147,7 +160,7 @@ const MaintenanceTaskLog: React.FC = () => {
         <button type="submit" style={{ marginLeft: "1em" }}>Search</button>
       </form>
 
-      {/* Results table or no-results message */}
+  {/* Results table or no-results message */}
       {tasks.length === 0 && (category || status || from || to)
         ? (<div style={{ margin: "1em 0", color: "#888" }}>No completed tasks found for the selected filters.</div>)
         : tasks.length > 0
@@ -220,14 +233,14 @@ const MaintenanceTaskLog: React.FC = () => {
           : null
       }
 
-      {/* Pagination controls */}
+  {/* Pagination controls */}
       <div style={{ marginBottom: "1em" }}>
         <button onClick={() => setPage(page - 1)} disabled={page === 1}>Previous</button>
         <span style={{ margin: "0 1em" }}> Page {page} of {Math.ceil(total / pageSize) || 1} </span>
         <button onClick={() => setPage(page + 1)} disabled={page * pageSize >= total}>Next</button>
       </div>
 
-      {/* Toast notification */}
+  {/* Toast notification */}
       {toast && (
         <Toast
           message={toast.message}

@@ -7,8 +7,9 @@ import { User } from "../entity/User";
 
 /**
  * Authentication routes for registration and login.
- * All user queries use TypeORM ORM for secure, parameterized database access.
- * Passwords are hashed before storage. JWT is used for authentication.
+ * - All user queries use TypeORM for secure, parameterized database access.
+ * - Passwords are hashed before storage using bcrypt.
+ * - JWT is used for stateless authentication.
  */
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -17,11 +18,13 @@ if (!JWT_SECRET) {
 }
 
 /**
- * @route   POST /api/auth/register
- * @desc    Register a new user
- * @access  Public
- * @body    { email: string, password: string }
- * @returns { message: string, email: string, id: string } on success, { error: string } on failure
+ * POST /api/auth/register
+ * Registers a new user with email and password.
+ * - Validates email and password length.
+ * - Hashes password before storing.
+ * - Prevents duplicate registration.
+ * - Returns: { message, email, id } on success, { error } on failure.
+ * Access: Public
  */
 router.post(
   "/register",
@@ -31,7 +34,7 @@ router.post(
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
   ],
   async (req: Request, res: Response) => {
-    console.log("Register request body:", req.body); // Add this line
+  // Debug logging removed for production safety
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -51,11 +54,12 @@ router.post(
 );
 
 /**
- * @route   POST /api/auth/login
- * @desc    Authenticate user and issue JWT
- * @access  Public
- * @body    { email: string, password: string }
- * @returns { token: string } on success, { error: string } on failure
+ * POST /api/auth/login
+ * Authenticates user and issues JWT token.
+ * - Validates email and password.
+ * - Checks credentials and password hash.
+ * - Returns: { token } on success, { error } on failure.
+ * Access: Public
  */
 router.post(
   "/login",
@@ -65,7 +69,7 @@ router.post(
     body("password").notEmpty().withMessage("Password required"),
   ],
   async (req: Request, res: Response) => {
-    console.log("Login request body:", req.body); // Add this line
+  // Debug logging removed for production safety
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
