@@ -154,6 +154,37 @@ const MaintenanceTaskLog: React.FC = () => {
       <form
         onSubmit={e => {
           e.preventDefault();
+          // Error handling for completed date filters
+          const fromDate = from ? parseDateInput(from) : null;
+          const toDate = to ? parseDateInput(to) : null;
+          if (fromDate && toDate && fromDate > toDate) {
+            toastManager?.showToast("'From' date cannot be after 'To' date.", "error");
+            return;
+          }
+          if (toDate && fromDate && toDate < fromDate) {
+            toastManager?.showToast("'To' date cannot be before 'From' date.", "error");
+            return;
+          }
+          // Error handling for due date filters
+          const dueFromDate = dueFrom ? parseDateInput(dueFrom) : null;
+          const dueToDate = dueTo ? parseDateInput(dueTo) : null;
+          if (dueFromDate && dueToDate && dueFromDate > dueToDate) {
+            toastManager?.showToast("'Due From' date cannot be after 'Due To' date.", "error");
+            return;
+          }
+          if (dueToDate && dueFromDate && dueToDate < dueFromDate) {
+            toastManager?.showToast("'Due To' date cannot be before 'Due From' date.", "error");
+            return;
+          }
+          // Optionally: warn if filtering for completed tasks in the future
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          if (fromDate && fromDate > today) {
+            toastManager?.showToast("'From' date is in the future. No completed tasks expected.", "error");
+          }
+          if (toDate && toDate > today) {
+            toastManager?.showToast("'To' date is in the future. No completed tasks expected.", "error");
+          }
           setPage(1);
           setSearchTrigger(searchTrigger + 1);
         }}
@@ -266,7 +297,26 @@ const MaintenanceTaskLog: React.FC = () => {
 
   {/* Results table or no-results message */}
       {tasks.length === 0 && (category || status || from || to)
-        ? (<div style={{ margin: "1em 0", color: "#888" }}>No completed tasks found for the selected filters.</div>)
+        ? (
+          <div style={{
+            margin: "2em 0",
+            color: "#555",
+            fontSize: "1.35em",
+            fontWeight: 600,
+            textAlign: "center",
+            background: "#f6f6f8",
+            borderRadius: 12,
+            padding: "1.5em 1em",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.04)"
+          }}>
+            <span style={{ display: "block", marginBottom: "0.5em" }}>
+              No tasks match your current filters.
+            </span>
+            <span style={{ fontWeight: 400, fontSize: "1em", color: "#888" }}>
+              Tip: Try refining your search criteria or adjusting the date range.
+            </span>
+          </div>
+        )
         : tasks.length > 0
           ? (
             <div style={{ width: "100%", overflowX: "auto", maxHeight: "500px", overflowY: "auto", margin: "1em 0", borderRadius: "8px", border: "1px solid #ccc" }}>
