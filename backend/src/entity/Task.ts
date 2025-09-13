@@ -32,11 +32,17 @@ export class Task {
     @Column({ nullable: true })
     category?: string;
 
-    /**
-     * Date when the task was completed (timestamp).
-     */
-    @Column({ type: "bigint", nullable: true })
-    completedAt?: number;
+  /**
+   * Date when the task is due (timestamp or ISO string).
+   */
+  @Column({ type: "bigint", nullable: true })
+  dueDate?: number;
+
+  /**
+   * Date when the task was completed (timestamp).
+   */
+  @Column({ type: "bigint", nullable: true })
+  completedAt?: number;
 
   /**
    * Reference to the user who owns this task.
