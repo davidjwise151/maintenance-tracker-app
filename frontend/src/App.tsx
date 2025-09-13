@@ -80,9 +80,21 @@ function App() {
             Sign Out
           </button>
         )}
-        <div style={{ maxWidth: 600, margin: "4em auto 2em auto", padding: "2em", border: "1px solid #ccc", borderRadius: 8, background: "#fff" }}>
-          <header style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "2em" }}>
-            <h1>Maintenance Tracker</h1>
+        <div style={{ maxWidth: 600, margin: "4em auto 2em auto", padding: "2em", borderRadius: 16, background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+          <header style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2em" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
+                <circle cx="22" cy="22" r="20" fill="#222" />
+                <path d="M14 28c0-6 8-6 8-12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="22" cy="16" r="2.5" fill="#fff" />
+              </svg>
+              <span style={{ fontFamily: 'SF Pro Display, Helvetica Neue, Arial, sans-serif', fontWeight: 700, fontSize: '2.2rem', letterSpacing: '-0.03em', color: '#222', textShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                Maintainer
+              </span>
+            </div>
+            <span style={{ fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif', fontWeight: 400, fontSize: '1.05rem', color: '#888', marginTop: 4, letterSpacing: '-0.01em' }}>
+              Maintenance, organized beautifully
+            </span>
           </header>
           <main>
             {/* If not logged in, show authentication form */}

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./styles/modern-form.css";
 
 type Mode = "login" | "register";
 interface AuthFormProps {
@@ -50,32 +51,47 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div>
-      <h2>{mode === "login" ? "Login" : "Register"}</h2>
-      {/* Email and password form */}
+    <div className="modern-form modern-form-horizontal modern-form-contrast" style={{ maxWidth: 400, margin: "2em auto", padding: "2em", borderRadius: 8, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+      <h2 className="form-title" style={{ textAlign: "center", marginBottom: "1em" }}>{mode === "login" ? "Login" : "Register"}</h2>
       <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        /><br />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        /><br />
-        <button type="submit">{mode === "login" ? "Login" : "Register"}</button>
+        <div className="form-row-horizontal">
+          <label className="form-label form-label-bold" htmlFor="email-input">Email</label>
+          <input
+            id="email-input"
+            type="email"
+            className="form-input"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            style={{ fontSize: "1rem" }}
+          />
+        </div>
+        <div className="form-row-horizontal">
+          <label className="form-label form-label-bold" htmlFor="password-input">Password</label>
+          <input
+            id="password-input"
+            type="password"
+            className="form-input"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            style={{ fontSize: "1rem" }}
+          />
+        </div>
+        <button type="submit" className="form-button" style={{ width: "100%", fontWeight: "bold", fontSize: "1rem", marginTop: "1em" }}>
+          {mode === "login" ? "Login" : "Register"}
+        </button>
       </form>
-      {/* Toggle between login and registration modes */}
-      <button onClick={() => setMode(mode === "login" ? "register" : "login")}> 
+      <button
+        onClick={() => setMode(mode === "login" ? "register" : "login")}
+        className="form-button"
+        style={{ width: "100%", background: "#eee", color: "#333", fontWeight: "normal", fontSize: "0.95rem", marginTop: "0.75em", border: "1px solid #ccc" }}
+      >
         {mode === "login" ? "Need an account? Register" : "Already have an account? Login"}
       </button>
-      {/* Feedback message */}
-      <div>{message}</div>
+      <div style={{ textAlign: "center", marginTop: "1em", color: message.includes("success") ? "#27ae60" : "#e74c3c", fontWeight: "bold" }}>{message}</div>
     </div>
   );
 };
