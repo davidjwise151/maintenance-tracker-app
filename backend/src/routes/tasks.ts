@@ -7,15 +7,29 @@ import { User } from "../entity/User";
 const router = Router();
 
 /**
- * PUT /api/tasks/:id/status
- * Updates the status of a specific task.
- * Request Body:
- *   - status: string (required) — new status value (Pending, In-Progress, Done)
+ * DELETE /api/tasks/:id
+ * Deletes a specific task owned by the authenticated user.
  * Requires authentication (JWT).
- * Response:
- *   The updated task object.
+ * Response: { success: true } or { error: string }
  */
-
+router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const jwtUser = (req as any).user;
+  const userId = jwtUser && jwtUser.id;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
+  }
+  const taskRepo = AppDataSource.getRepository(Task);
+  const task = await taskRepo.findOne({ where: { id }, relations: ['user'] });
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+  if (!task.user || task.user.id !== userId) {
+    return res.status(403).json({ error: 'Forbidden: You do not own this task.' });
+  }
+  await taskRepo.remove(task);
+  res.json({ success: true });
+});
 
 /**
  * PUT /api/tasks/:id/status
@@ -47,7 +61,6 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   await taskRepo.save(task);
   res.json(task);
 });
-
 
 
 /**

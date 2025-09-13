@@ -7,6 +7,18 @@ interface CreateTaskFormProps {
 
 const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   const [title, setTitle] = useState("");
+  // Use the same category options as MaintenanceTaskLog
+  const categories = [
+    "",
+    "Plumbing",
+    "Flooring",
+    "Inspections",
+    "Electrical",
+    "HVAC",
+    "Landscaping",
+    "Painting",
+    "Other"
+  ];
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("Pending");
   const [error, setError] = useState("");
@@ -57,13 +69,21 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
         onChange={e => setTitle(e.target.value)}
         required
       />
-      <input
-        type="text"
-        placeholder="Category"
-        value={category}
-        onChange={e => setCategory(e.target.value)}
-        required
-      />
+      {/* Category dropdown to match MaintenanceTaskLog */}
+      <label htmlFor="category-select" style={{ marginRight: "1em" }}>
+        <strong>Category:</strong>
+        <select
+          id="category-select"
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          required
+        >
+          {categories.map(cat => (
+            <option key={cat} value={cat}>{cat || "All"}</option>
+          ))}
+        </select>
+      </label>
+      {/* Status dropdown to match MaintenanceTaskLog */}
       <label htmlFor="status-select" style={{ marginRight: "1em" }}>
         <strong>Status:</strong>
         <select id="status-select" value={status} onChange={e => setStatus(e.target.value)}>
