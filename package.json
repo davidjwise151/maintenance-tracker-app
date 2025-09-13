@@ -1,10 +1,10 @@
 {
   "devDependencies": {
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3"
+    "@types/express": "^5.0.3",
+    "concurrently": "^9.2.1"
   },
-  "dependencies": {},
-    "scripts": {
-      "dev": "(cd backend && npm run dev) & (cd frontend && npm start)"
-    }
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm start --prefix frontend\""
+  }
 }
