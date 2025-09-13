@@ -39,13 +39,11 @@ router.post(
     const existingUser = await userRepo.findOneBy({ email });
     // Prevent duplicate registration
     if (existingUser) return res.status(400).json({ error: "User already exists" });
-    // Hash password before storing
-    const hashed = await bcrypt.hash(password, 10);
-    // Generate a simple unique user ID
-    const id = Math.random().toString(36).substr(2, 9);
-    // ... Save the new user to the database
-    await userRepo.save({ email, password: hashed, id });
-    res.json({ message: "Registered", email, id });
+  // Hash password before storing
+  const hashed = await bcrypt.hash(password, 10);
+  // Save the new user to the database, letting TypeORM handle UUID
+  const newUser = await userRepo.save({ email, password: hashed });
+  res.json({ message: "Registered", email: newUser.email, id: newUser.id });
   }
 );
 
