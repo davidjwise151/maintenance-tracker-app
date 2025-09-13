@@ -4,5 +4,7 @@
     "@types/express": "^5.0.3"
   },
   "dependencies": {},
-  "scripts": {}
+    "scripts": {
+      "dev": "(cd backend && npm run dev) & (cd frontend && npm start)"
+    }
 }
