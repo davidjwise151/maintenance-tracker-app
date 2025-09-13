@@ -1,6 +1,17 @@
+
 import React, { useState, useEffect } from "react";
 import CreateTaskForm from "./CreateTaskForm";
 import Toast from "./Toast";
+
+
+// Helper function for MM/DD/YYYY formatting
+function formatDateMMDDYYYY(date: number | string): string {
+  const d = new Date(date);
+  const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+  const dd = d.getDate().toString().padStart(2, '0');
+  const yyyy = d.getFullYear().toString();
+  return mm + '/' + dd + '/' + yyyy;
+}
 
 /**
  * MaintenanceTaskLog component displays a log/history view of all maintenance tasks.
@@ -69,9 +80,18 @@ const MaintenanceTaskLog: React.FC = () => {
   if (category) params.append("category", category);
   if (status) params.append("status", status);
   if (from) params.append("from", from);
-  if (to) params.append("to", to);
-  if (dueFrom) params.append("dueFrom", new Date(dueFrom).getTime().toString());
-  if (dueTo) params.append("dueTo", new Date(dueTo).getTime().toString());
+  if (to) {
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+    params.append("to", toDate.getTime().toString());
+  }
+    if (dueFrom) params.append("dueFrom", new Date(dueFrom).getTime().toString());
+    if (dueTo) {
+  // Set to end of selected day for inclusivity
+    const dueToDate = new Date(dueTo);
+    dueToDate.setHours(23, 59, 59, 999);
+    params.append("dueTo", dueToDate.getTime().toString());
+    }
     params.append("page", String(page));
     params.append("pageSize", String(pageSize));
 
@@ -137,62 +157,69 @@ const MaintenanceTaskLog: React.FC = () => {
           border: "1px solid #ccc",
           borderRadius: "8px",
           background: "#f9f9f9",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "1em"
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "1.5em"
         }}
       >
-        <label>
-          Category:
-          <select value={category} onChange={e => setCategory(e.target.value)}>
-            <option value="">All</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Status:
-          <select value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="">All</option>
-            <option value="Pending">Pending</option>
-            <option value="In-Progress">In-Progress</option>
-            <option value="Done">Done</option>
-          </select>
-        </label>
-        <label>
-          Completed From:
-          <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
-        </label>
-        <label>
-          Completed To:
-          <input type="date" value={to} onChange={e => setTo(e.target.value)} />
-        </label>
-        <label>
-          Due Date From:
-          <input type="date" value={dueFrom} onChange={e => setDueFrom(e.target.value)} />
-        </label>
-        <label>
-          Due Date To:
-          <input type="date" value={dueTo} onChange={e => setDueTo(e.target.value)} />
-        </label>
-        <button type="submit" style={{ marginLeft: "1em" }}>Search</button>
-        <button
-          type="button"
-          style={{ marginLeft: "1em" }}
-          onClick={() => {
-            setCategory("");
-            setStatus("");
-            setFrom("");
-            setTo("");
-            setDueFrom("");
-            setDueTo("");
-            setPage(1);
-            setSearchTrigger(searchTrigger + 1);
-          }}
-        >
-          Clear Filters
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
+          <label><strong>Category</strong>
+            <select value={category} onChange={e => setCategory(e.target.value)}>
+              <option value="">All</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
+          <label><strong>Status</strong>
+            <select value={status} onChange={e => setStatus(e.target.value)}>
+              <option value="">All</option>
+              <option value="Pending">Pending</option>
+              <option value="In-Progress">In-Progress</option>
+              <option value="Done">Done</option>
+            </select>
+          </label>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
+          <label><strong>Completed From</strong>
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)} placeholder="MM/DD/YYYY" />
+          </label>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
+          <label><strong>Completed To</strong>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)} placeholder="MM/DD/YYYY" />
+          </label>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
+          <label><strong>Due Date From</strong>
+            <input type="date" value={dueFrom} onChange={e => setDueFrom(e.target.value)} placeholder="MM/DD/YYYY" />
+          </label>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
+          <label><strong>Due Date To</strong>
+            <input type="date" value={dueTo} onChange={e => setDueTo(e.target.value)} placeholder="MM/DD/YYYY" />
+          </label>
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: "1em" }}>
+          <button type="submit">Search</button>
+          <button
+            type="button"
+            onClick={() => {
+              setCategory("");
+              setStatus("");
+              setFrom("");
+              setTo("");
+              setDueFrom("");
+              setDueTo("");
+              setPage(1);
+              setSearchTrigger(searchTrigger + 1);
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
       </form>
 
   {/* Results table or no-results message */}
@@ -219,11 +246,18 @@ const MaintenanceTaskLog: React.FC = () => {
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.title}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                        {(typeof task.dueDate === "number" && task.dueDate > 0) ? new Date(task.dueDate).toLocaleDateString() :
-                          (typeof task.dueDate === "string" && !isNaN(Date.parse(task.dueDate)) ? new Date(task.dueDate).toLocaleDateString() :
-                            <span style={{color: '#888'}}>No due date</span>)}
+                        {(typeof task.dueDate === "number" && task.dueDate > 0)
+                          ? formatDateMMDDYYYY(task.dueDate)
+                          : (typeof task.dueDate === "string" && !isNaN(Date.parse(task.dueDate))
+                            ? formatDateMMDDYYYY(task.dueDate)
+                            : <span style={{color: '#888'}}>No due date</span>)}
                       </td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                        {task.completedAt
+                          ? formatDateMMDDYYYY(task.completedAt)
+                          : "N/A"}
+
+                      </td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         <select
                           value={task.status}
