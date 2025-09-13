@@ -1,5 +1,22 @@
 # Patch Notes
 
+## v0.2 (Planned & In Progress)
+
+### Planned Features
+- Due dates and notifications/reminders
+- Task status tracking (pending, in-progress, done)
+- Multi-user support
+- Permissions and roles
+
+### Improvements
+- Refactored all major files for clarity and maintainability
+- Removed unused code and dependencies
+- Improved comments and docstrings throughout codebase
+- Ensured consistent code style and formatting
+- Fixed category dropdown to show only a single "All" option
+
+---
+
 ## v0.1
 
 ### Features
