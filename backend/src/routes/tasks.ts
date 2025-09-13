@@ -82,7 +82,7 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
  */
 router.get("/completed", authenticateJWT, async (req: Request, res: Response) => {
   // Extract query parameters for filtering and pagination
-  const { category, from, to, status = "", page = 1, pageSize = 20, sort = "desc" } = req.query;
+  const { category, from, to, status = "", page = 1, pageSize = 20, sort = "desc", dueFrom, dueTo } = req.query;
   const taskRepo = AppDataSource.getRepository(Task);
 
   // Build query for completed tasks, joining user info
@@ -96,6 +96,11 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
   if (category) query = query.andWhere("task.category = :category", { category });
   if (from) query = query.andWhere("task.completedAt >= :from", { from });
   if (to) query = query.andWhere("task.completedAt <= :to", { to });
+  // Due date filtering: only apply if both are valid numbers
+  const dueFromNum = dueFrom && !isNaN(Number(dueFrom)) ? Number(dueFrom) : undefined;
+  const dueToNum = dueTo && !isNaN(Number(dueTo)) ? Number(dueTo) : undefined;
+  if (dueFromNum !== undefined) query = query.andWhere("task.dueDate >= :dueFromNum", { dueFromNum });
+  if (dueToNum !== undefined) query = query.andWhere("task.dueDate <= :dueToNum", { dueToNum });
 
   // Sort results by completedAt date
   query = query.orderBy("task.completedAt", sort === "asc" ? "ASC" : "DESC");

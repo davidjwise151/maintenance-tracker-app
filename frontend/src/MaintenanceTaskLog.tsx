@@ -39,8 +39,10 @@ const MaintenanceTaskLog: React.FC = () => {
   const [tasks, setTasks] = useState([]);
   const [category, setCategory] = useState(""); // Filter by category (blank means All)
   const [status, setStatus] = useState(""); // Filter by status (blank means All)
-  const [from, setFrom] = useState(""); // Filter by start date
-  const [to, setTo] = useState(""); // Filter by end date
+  const [from, setFrom] = useState(""); // Filter by completed start date
+  const [to, setTo] = useState(""); // Filter by completed end date
+  const [dueFrom, setDueFrom] = useState(""); // Filter by due date start
+  const [dueTo, setDueTo] = useState(""); // Filter by due date end
   // Maintenance categories for dropdown
   const categories = [
     "Plumbing",
@@ -64,10 +66,12 @@ const MaintenanceTaskLog: React.FC = () => {
    */
   const refreshTasks = () => {
     const params = new URLSearchParams();
-    if (category) params.append("category", category);
-    if (status) params.append("status", status);
-    if (from) params.append("from", from);
-    if (to) params.append("to", to);
+  if (category) params.append("category", category);
+  if (status) params.append("status", status);
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  if (dueFrom) params.append("dueFrom", new Date(dueFrom).getTime().toString());
+  if (dueTo) params.append("dueTo", new Date(dueTo).getTime().toString());
     params.append("page", String(page));
     params.append("pageSize", String(pageSize));
 
@@ -157,14 +161,38 @@ const MaintenanceTaskLog: React.FC = () => {
           </select>
         </label>
         <label>
-          From:
+          Completed From:
           <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
         </label>
         <label>
-          To:
+          Completed To:
           <input type="date" value={to} onChange={e => setTo(e.target.value)} />
         </label>
+        <label>
+          Due Date From:
+          <input type="date" value={dueFrom} onChange={e => setDueFrom(e.target.value)} />
+        </label>
+        <label>
+          Due Date To:
+          <input type="date" value={dueTo} onChange={e => setDueTo(e.target.value)} />
+        </label>
         <button type="submit" style={{ marginLeft: "1em" }}>Search</button>
+        <button
+          type="button"
+          style={{ marginLeft: "1em" }}
+          onClick={() => {
+            setCategory("");
+            setStatus("");
+            setFrom("");
+            setTo("");
+            setDueFrom("");
+            setDueTo("");
+            setPage(1);
+            setSearchTrigger(searchTrigger + 1);
+          }}
+        >
+          Clear Filters
+        </button>
       </form>
 
   {/* Results table or no-results message */}
