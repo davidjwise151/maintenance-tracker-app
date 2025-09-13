@@ -89,31 +89,33 @@ function App() {
     setIsLoggedIn(true);
   }, []);
 
+  // Reminders fetch logic as a reusable function
+  const fetchReminders = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setRemindersLoading(true);
+    try {
+      const apiBase = process.env.REACT_APP_API_URL || "";
+      const res = await fetch(`${apiBase}/api/tasks/upcoming`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReminders({ upcoming: data.upcoming || [], late: data.late || [] });
+      } else {
+        setReminders({ upcoming: [], late: [] });
+      }
+    } catch {
+      setReminders({ upcoming: [], late: [] });
+    } finally {
+      setRemindersLoading(false);
+    }
+  }, []);
+
   // Fetch reminders when logged in
   useEffect(() => {
-    const fetchReminders = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      setRemindersLoading(true);
-      try {
-        const apiBase = process.env.REACT_APP_API_URL || "";
-        const res = await fetch(`${apiBase}/api/tasks/upcoming`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setReminders({ upcoming: data.upcoming || [], late: data.late || [] });
-        } else {
-          setReminders({ upcoming: [], late: [] });
-        }
-      } catch {
-        setReminders({ upcoming: [], late: [] });
-      } finally {
-        setRemindersLoading(false);
-      }
-    };
     if (isLoggedIn) fetchReminders();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, fetchReminders]);
 
   return (
     <ToastManagerProvider>
@@ -143,7 +145,23 @@ function App() {
           </button>
         )}
         <div style={{ maxWidth: 600, margin: "4em auto 2em auto", padding: "2em", borderRadius: 16, background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
-          {/* Reminders Section - styled for Mac OS aesthetic, below logo/phrase, can be minimized */}
+          {/* Logo and phrase at top */}
+          <header style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2em" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <svg width="48" height="48" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
+                <circle cx="22" cy="22" r="20" fill="#222" />
+                <path d="M14 28c0-6 8-6 8-12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="22" cy="16" r="2.5" fill="#fff" />
+              </svg>
+              <span style={{ fontFamily: 'SF Pro Display, Helvetica Neue, Arial, sans-serif', fontWeight: 700, fontSize: '2.4rem', letterSpacing: '-0.03em', color: '#222', textShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                Maintainer
+              </span>
+            </div>
+            <span style={{ fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif', fontWeight: 400, fontSize: '1.08rem', color: '#888', marginTop: 4, letterSpacing: '-0.01em' }}>
+              Built for Reliability
+            </span>
+          </header>
+          {/* Reminders Section - collapsible, directly below logo/phrase, above Create New Task */}
           {isLoggedIn && (
             <div style={{ marginBottom: "2em", transition: "all 0.2s" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: remindersMinimized ? "#f5f5f7" : "#f5f5f7", borderRadius: 10, boxShadow: remindersMinimized ? "none" : "0 2px 8px rgba(0,0,0,0.04)", padding: "0.7em 1.2em", marginBottom: remindersMinimized ? 0 : 12, border: "1px solid #e0e0e0" }}>
@@ -202,21 +220,6 @@ function App() {
               )}
             </div>
           )}
-          <header style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2em" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}>
-                <circle cx="22" cy="22" r="20" fill="#222" />
-                <path d="M14 28c0-6 8-6 8-12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="22" cy="16" r="2.5" fill="#fff" />
-              </svg>
-              <span style={{ fontFamily: 'SF Pro Display, Helvetica Neue, Arial, sans-serif', fontWeight: 700, fontSize: '2.2rem', letterSpacing: '-0.03em', color: '#222', textShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                Maintainer
-              </span>
-            </div>
-            <span style={{ fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif', fontWeight: 400, fontSize: '1.05rem', color: '#888', marginTop: 4, letterSpacing: '-0.01em' }}>
-              Built for Reliability
-            </span>
-          </header>
           <main>
             {/* If not logged in, show authentication form */}
             {!isLoggedIn ? (
@@ -230,7 +233,7 @@ function App() {
                 </div>
               </>
             ) : (
-              <MaintenanceTaskLog />
+              <MaintenanceTaskLog refreshReminders={fetchReminders} />
             )}
           </main>
         </div>

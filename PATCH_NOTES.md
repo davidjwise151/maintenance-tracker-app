@@ -1,9 +1,13 @@
 # Patch Notes
 
-## v0.2 (Planned & In Progress)
+## v0.2
 
-### Planned Features
-- Due dates and notifications/reminders
+### Features
+- **Due Date Reminders & Notifications:**
+	- Backend endpoint `/api/tasks/upcoming` returns tasks due in the next 14 days (upcoming) and overdue tasks (late) for the authenticated user.
+	- Frontend displays a user-friendly reminders section, styled for Mac OS aesthetic, showing upcoming and late tasks after login.
+	- Reminders section can be minimized for a clean, unobtrusive experience.
+	- Dates are shown in MM/DD/YYYY format for consistency.
 - Task status tracking (pending, in-progress, done)
 - Multi-user support
 - Permissions and roles

@@ -15,7 +15,11 @@ import { ToastManagerContext } from "./ToastManager";
  * - Supports task creation, status updates, and deletion.
  * - Shows feedback via toast notifications.
  */
-const MaintenanceTaskLog: React.FC = () => {
+interface MaintenanceTaskLogProps {
+  refreshReminders?: () => void;
+}
+
+const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminders }) => {
   // Helper functions for 5-year date limits
   function fiveYearsAgo() {
     const d = new Date();
@@ -162,7 +166,7 @@ const MaintenanceTaskLog: React.FC = () => {
   return (
     <div className="task-log-container task-log-contrast">
       {/* CreateTaskForm: triggers refresh on new task creation */}
-      <CreateTaskForm onTaskCreated={refreshTasks} />
+  <CreateTaskForm onTaskCreated={() => { refreshTasks(); if (refreshReminders) refreshReminders(); }} />
       <h3 className="task-log-title">Maintenance Task Log</h3>
       {/* Results counter */}
       <div style={{ marginBottom: "0.5em", fontWeight: "bold", fontSize: "1.08em" }}>
