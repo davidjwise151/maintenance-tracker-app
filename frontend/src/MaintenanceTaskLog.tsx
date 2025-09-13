@@ -1,16 +1,13 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { formatDateMMDDYYYY, parseDateInput } from "./utils/dateUtils";
 import DatePicker from "react-datepicker";
 import "./styles/datepicker.css";
 import "./styles/modern-form.css";
 import "react-datepicker/dist/react-datepicker.css";
 import CreateTaskForm from "./CreateTaskForm";
-import Toast from "./Toast";
+import { ToastManagerContext } from "./ToastManager";
 
-
-// Helper function for DD/MM/YYYY formatting
-// ...date helpers now imported from dateUtils.ts
 
 /**
  * MaintenanceTaskLog component displays a log/history view of all maintenance tasks.
@@ -23,6 +20,7 @@ const MaintenanceTaskLog: React.FC = () => {
    * Handles task deletion with confirmation and feedback.
    * Calls backend API to delete and updates UI.
    */
+  const toastManager = useContext(ToastManagerContext);
   const handleDelete = async (taskId: string) => {
     if (!window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
     const token = localStorage.getItem("token");
@@ -36,12 +34,12 @@ const MaintenanceTaskLog: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
-      setToast({ message: "Task deleted successfully!", type: "success" });
+      toastManager?.showToast("Task deleted successfully!", "success");
       // Remove deleted task from UI
       setTasks(tasks.filter((t: any) => t.id !== taskId));
       setTotal(total > 0 ? total - 1 : 0);
     } catch (err) {
-      setToast({ message: "Error deleting task: " + String(err), type: "error" });
+      toastManager?.showToast("Error deleting task: " + String(err), "error");
     }
   };
 
@@ -65,11 +63,9 @@ const MaintenanceTaskLog: React.FC = () => {
     "Other"
   ];
   const [page, setPage] = useState(1); // Pagination: current page
-  const [pageSize, setPageSize] = useState(5); // Pagination: page size
+  const [pageSize, setPageSize] = useState(25); // Pagination: page size (default 25)
   const [total, setTotal] = useState(0); // Total number of results
   const [searchTrigger, setSearchTrigger] = useState(0); // Used to trigger search on filter change
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
   /**
    * Fetch completed tasks from backend with filters and pagination.
    * Updates tasks and total count in state.
@@ -78,30 +74,17 @@ const MaintenanceTaskLog: React.FC = () => {
     const params = new URLSearchParams();
     if (category) params.append("category", category);
     if (status) params.append("status", status);
-    // Completed date filter: 'from' is start, 'to' is inclusive end of selected day
-    // Helper to parse MM/DD/YYYY string to Date
-    /**
-     * Parse a yyyy-mm-dd string from <input type="date"> to JS Date.
-     * If endOfDay is true, sets time to 23:59:59.999 for inclusive filtering.
-     * Returns null if invalid.
-     */
-    function parseDateInput(str: string, endOfDay = false): Date | null {
-  // Accept MM/DD/YYYY format only
-  // Accept yyyy-mm-dd format from <input type="date">
-  if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
-  const [yyyy, mm, dd] = str.split('-').map(Number);
-  const d = new Date(yyyy, mm - 1, dd);
-  d.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
-  return d;
-    }
     // Completed date filter: 'from' is start of day, 'to' is end of day (inclusive)
     if (from) {
       const fromDate = parseDateInput(from);
       if (fromDate) params.append("from", fromDate.getTime().toString());
     }
     if (to) {
-      const toDate = parseDateInput(to, true);
-      if (toDate) params.append("to", toDate.getTime().toString());
+      const toDate = parseDateInput(to);
+      if (toDate) {
+        toDate.setHours(23, 59, 59, 999);
+        params.append("to", toDate.getTime().toString());
+      }
     }
     // Due date filter: 'dueFrom' is start of day, 'dueTo' is end of day (inclusive)
     if (dueFrom) {
@@ -109,8 +92,11 @@ const MaintenanceTaskLog: React.FC = () => {
       if (dueFromDate) params.append("dueFrom", dueFromDate.getTime().toString());
     }
     if (dueTo) {
-      const dueToDate = parseDateInput(dueTo, true);
-      if (dueToDate) params.append("dueTo", dueToDate.getTime().toString());
+      const dueToDate = parseDateInput(dueTo);
+      if (dueToDate) {
+        dueToDate.setHours(23, 59, 59, 999);
+        params.append("dueTo", dueToDate.getTime().toString());
+      }
     }
     params.append("page", String(page));
     params.append("pageSize", String(pageSize));
@@ -235,12 +221,12 @@ const MaintenanceTaskLog: React.FC = () => {
             className="task-log-input"
           />
         </div>
-        <div className="task-log-row-horizontal" style={{ alignItems: "flex-end", gap: "1em" }}>
-          <button type="submit" className="task-log-button">Search</button>
+        <div className="task-log-row-horizontal" style={{ alignItems: "center", justifyContent: "center", gap: "1em", marginTop: "1em" }}>
+          <button type="submit" className="task-log-button" style={{ minWidth: 160, height: 40 }}>Search</button>
           <button
             type="button"
             className="task-log-button"
-            style={{ background: "#fff", color: "#1976d2", border: "1px solid #1976d2" }}
+            style={{ background: "#fff", color: "#1976d2", border: "1px solid #1976d2", minWidth: 160, height: 40 }}
             onClick={() => {
               setCategory("");
               setStatus("");
@@ -254,6 +240,27 @@ const MaintenanceTaskLog: React.FC = () => {
           >
             Clear Filters
           </button>
+          <div>
+            <button
+              type="button"
+              className="task-log-button"
+              style={{ background: "#1976d2", color: "#fff", border: "1px solid #1976d2", minWidth: 160, height: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 12px", fontSize: "0.98em" }}
+            >
+              <span style={{ marginRight: 8, fontSize: "0.97em", fontWeight: 500 }}>Results per page:</span>
+              <select
+                value={pageSize}
+                onChange={e => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                style={{ border: "none", background: "#1976d2", color: "#fff", fontWeight: "bold", fontSize: "0.97em", width: 54, height: 28, borderRadius: 4, textAlign: "center", padding: "0 2px", marginLeft: 2 }}
+              >
+                {[25, 50, 100, 150, 200].map(val => (
+                  <option key={val} value={val} style={{ color: "#1976d2", background: "#fff", fontSize: "0.97em" }}>{val}</option>
+                ))}
+              </select>
+            </button>
+          </div>
         </div>
       </form>
 
@@ -282,10 +289,8 @@ const MaintenanceTaskLog: React.FC = () => {
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         {(typeof task.dueDate === "number" && task.dueDate > 0)
-                          ? formatDateMMDDYYYY(task.dueDate)
-                          : (typeof task.dueDate === "string" && !isNaN(Date.parse(task.dueDate))
-                            ? formatDateMMDDYYYY(task.dueDate)
-                            : <span style={{color: '#888'}}>No due date</span>)}
+                          ? formatDateMMDDYYYY(new Date(task.dueDate))
+                          : <span style={{color: '#888'}}>No due date set</span>}
                       </td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         {task.completedAt
@@ -310,11 +315,11 @@ const MaintenanceTaskLog: React.FC = () => {
                             })
                               .then(res => {
                                 if (!res.ok) throw new Error("Failed to update status");
-                                setToast({ message: "Status updated successfully!", type: "success" });
+                                toastManager?.showToast("Status updated successfully!", "success");
                                 setSearchTrigger(searchTrigger + 1);
                               })
                               .catch(err => {
-                                setToast({ message: "Error updating status: " + String(err), type: "error" });
+                                toastManager?.showToast("Error updating status: " + String(err), "error");
                               });
                           }}
                           style={{ minWidth: 120 }}
@@ -349,15 +354,6 @@ const MaintenanceTaskLog: React.FC = () => {
         <span className="task-log-pagination-info"> Page {page} of {Math.ceil(total / pageSize) || 1} </span>
         <button className="task-log-button" onClick={() => setPage(page + 1)} disabled={page * pageSize >= total}>Next</button>
       </div>
-
-  {/* Toast notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
   );
 };

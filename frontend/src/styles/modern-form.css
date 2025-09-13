@@ -1,7 +1,9 @@
 /* Contrasted container for Create New Task section */
 .modern-form-contrast {
-  background: linear-gradient(135deg, #e3eafc 60%, #f5f7fa 100%);
-  border: 1px solid #1976d2;
+  background: #f9f9fa;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 8px 32px rgba(60, 60, 67, 0.07), 0 1.5px 4px rgba(60, 60, 67, 0.04);
+  border-radius: 14px;
 }
 /* Maintenance Task Log horizontal filter row and bold label */
 .task-log-filters-horizontal {
@@ -15,12 +17,16 @@
   gap: 1.2em;
   margin-bottom: 0.7em;
 }
+.task-log-row-horizontal.button-row {
+  justify-content: center;
+}
 .task-log-label-bold {
   font-weight: 600;
   font-size: 1.08em;
   color: #222;
   min-width: 140px;
   margin-bottom: 0;
+  font-family: inherit;
 }
 .task-log-row-horizontal .task-log-select,
 .task-log-row-horizontal .task-log-input {
@@ -28,24 +34,27 @@
   min-width: 180px;
 }
 .task-log-contrast {
-  background: linear-gradient(135deg, #f5f7fa 60%, #e3eafc 100%);
-  border: 1px solid #1976d2;
+  background: #f9f9fa;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 8px 32px rgba(60, 60, 67, 0.07), 0 1.5px 4px rgba(60, 60, 67, 0.04);
+  border-radius: 14px;
 }
 .task-log-pagination {
   display: flex;
   align-items: center;
   gap: 1em;
   margin-bottom: 1em;
-  justify-content: flex-start;
+  justify-content: center;
 }
 .task-log-pagination-info {
   font-size: 1.08em;
   font-weight: 600;
   color: #1976d2;
-  background: #e3eafc;
-  border-radius: 6px;
+  background: #f5faff;
+  border-radius: 8px;
   padding: 4px 16px;
   margin: 0 0.5em;
+  font-family: inherit;
 }
 /* Horizontal form row for modern layout */
 .modern-form-horizontal {
@@ -65,6 +74,7 @@
   color: #222;
   min-width: 120px;
   margin-bottom: 0;
+  font-family: inherit;
 }
 .form-row-horizontal .form-input,
 .form-row-horizontal .datepicker-input,
@@ -77,11 +87,12 @@
   flex-direction: column;
   gap: 1.2em;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(60, 60, 67, 0.07), 0 1.5px 4px rgba(60, 60, 67, 0.04);
   padding: 2.5em 2.5em 2em 2.5em;
   max-width: 440px;
   margin: 0 auto 2em auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 .form-title {
   font-size: 1.7em;
@@ -89,6 +100,7 @@
   margin-bottom: 0.7em;
   color: #222;
   letter-spacing: 0.5px;
+  font-family: inherit;
 }
 .form-row {
   display: flex;
@@ -100,56 +112,53 @@
   color: #333;
   font-weight: 500;
   margin-bottom: 0.1em;
+  font-family: inherit;
 }
 .form-input, .datepicker-input, select {
   font-size: 1.08em;
   padding: 8px 12px;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  background: #f7f7f7;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 60, 67, 0.04);
   transition: border-color 0.2s;
+  font-family: inherit;
 }
 .form-input:focus, .datepicker-input:focus, select:focus {
   border-color: #1976d2;
   outline: none;
-  background: #fff;
+  background: #f5faff;
 }
 .form-button {
-  background: linear-gradient(90deg, #1976d2 60%, #2196f3 100%);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
+  background: linear-gradient(90deg, #e0e6ed 0%, #e3eafc 100%);
+  color: #1976d2;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   padding: 12px 0;
   font-size: 1.08em;
   font-weight: 600;
   cursor: pointer;
   margin-top: 1em;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-  transition: background 0.2s;
+  box-shadow: 0 1.5px 4px rgba(60, 60, 67, 0.04);
+  transition: background 0.2s, color 0.2s;
 }
 .form-button:hover {
-  background: linear-gradient(90deg, #145ea8 60%, #1976d2 100%);
+  background: linear-gradient(90deg, #dbeafe 0%, #e3eafc 100%);
+  color: #145ea8;
 }
-.form-error {
-  color: #d32f2f;
-  font-size: 1em;
-  margin-top: 0.5em;
+.form-error, .form-success {
   font-weight: 500;
-}
-.form-success {
-  color: #388e3c;
-  font-size: 1em;
-  margin-top: 0.5em;
-  font-weight: 500;
+  font-family: inherit;
 }
 /* Maintenance Task Log styles for consistency */
 .task-log-container {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(60, 60, 67, 0.07), 0 1.5px 4px rgba(60, 60, 67, 0.04);
   padding: 2.5em 2.5em 2em 2.5em;
   max-width: 900px;
   margin: 0 auto 2em auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 .task-log-title {
   font-size: 1.7em;
@@ -157,46 +166,40 @@
   margin-bottom: 0.7em;
   color: #222;
   letter-spacing: 0.5px;
+  font-family: inherit;
 }
-.task-log-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5em 2em;
-  background: #f7f7f7;
-  border-radius: 8px;
-  padding: 1.2em 1.5em;
-  margin-bottom: 1.2em;
+.task-log-label, .task-log-label-bold {
+  color: #222;
+  font-family: inherit;
 }
-.task-log-label {
-  font-size: 1.08em;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 0.1em;
-}
-.task-log-input, .task-log-select {
+.task-log-select, .task-log-input {
   font-size: 1.08em;
   padding: 8px 12px;
-  border: 1px solid #bbb;
-  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 60, 67, 0.04);
   transition: border-color 0.2s;
+  font-family: inherit;
 }
 .task-log-input:focus, .task-log-select:focus {
   border-color: #1976d2;
   outline: none;
+  background: #f5faff;
 }
 .task-log-button {
-  background: linear-gradient(90deg, #1976d2 60%, #2196f3 100%);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
+  background: linear-gradient(90deg, #e0e6ed 0%, #e3eafc 100%);
+  color: #1976d2;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   padding: 10px 18px;
   font-size: 1.08em;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-  transition: background 0.2s;
+  box-shadow: 0 1.5px 4px rgba(60, 60, 67, 0.04);
+  transition: background 0.2s, color 0.2s;
 }
 .task-log-button:hover {
-  background: linear-gradient(90deg, #145ea8 60%, #1976d2 100%);
+  background: linear-gradient(90deg, #dbeafe 0%, #e3eafc 100%);
+  color: #145ea8;
 }

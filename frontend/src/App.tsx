@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import AuthForm from "./AuthForm";
 import MaintenanceTaskLog from "./MaintenanceTaskLog";
+import { ToastManagerProvider } from "./ToastManager";
 
 /**
  * Main application component.
@@ -53,26 +54,51 @@ function App() {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "2em auto", padding: "2em", border: "1px solid #ccc", borderRadius: 8 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2em" }}>
-        <h1>Maintenance Tracker</h1>
+    <ToastManagerProvider>
+      <div style={{ position: "relative", minHeight: "100vh", background: "#f9f9f9" }}>
         {isLoggedIn && (
-          <button onClick={handleSignOut} style={{ padding: "0.5em 1em" }}>Sign Out</button>
+          <button
+            onClick={handleSignOut}
+            className="task-log-button"
+            style={{
+              position: "absolute",
+              top: 24,
+              right: 32,
+              minWidth: 120,
+              height: 36,
+              fontWeight: "bold",
+              fontSize: "1rem",
+              background: "#e74c3c",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              cursor: "pointer",
+              zIndex: 1000
+            }}
+          >
+            Sign Out
+          </button>
         )}
-      </header>
-      <main>
-        {/* If not logged in, show authentication form */}
-        {!isLoggedIn ? (
-          <>
-            <AuthForm onLoginSuccess={handleLoginSuccess} />
-            <button onClick={fetchProtected}>Test Protected Route</button>
-            <div>{protectedMsg}</div>
-          </>
-        ) : (
-          <MaintenanceTaskLog />
-        )}
-      </main>
-    </div>
+        <div style={{ maxWidth: 600, margin: "4em auto 2em auto", padding: "2em", border: "1px solid #ccc", borderRadius: 8, background: "#fff" }}>
+          <header style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "2em" }}>
+            <h1>Maintenance Tracker</h1>
+          </header>
+          <main>
+            {/* If not logged in, show authentication form */}
+            {!isLoggedIn ? (
+              <>
+                <AuthForm onLoginSuccess={handleLoginSuccess} />
+                <button onClick={fetchProtected}>Test Protected Route</button>
+                <div>{protectedMsg}</div>
+              </>
+            ) : (
+              <MaintenanceTaskLog />
+            )}
+          </main>
+        </div>
+      </div>
+    </ToastManagerProvider>
   );
 }
 
