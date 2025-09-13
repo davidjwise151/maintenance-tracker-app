@@ -16,6 +16,25 @@ import { ToastManagerContext } from "./ToastManager";
  * - Shows feedback via toast notifications.
  */
 const MaintenanceTaskLog: React.FC = () => {
+  // Helper functions for 5-year date limits
+  function fiveYearsAgo() {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 5);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function todayEnd() {
+    const d = new Date();
+    d.setHours(23,59,59,999);
+    return d;
+  }
+  function fiveYearsFromNow() {
+    // For due dates only
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 5);
+    d.setHours(23,59,59,999);
+    return d;
+  }
   /**
    * Handles task deletion with confirmation and feedback.
    * Calls backend API to delete and updates UI.
@@ -154,36 +173,18 @@ const MaintenanceTaskLog: React.FC = () => {
       <form
         onSubmit={e => {
           e.preventDefault();
-          // Error handling for completed date filters
+          // Only validate logical range (from > to)
           const fromDate = from ? parseDateInput(from) : null;
           const toDate = to ? parseDateInput(to) : null;
           if (fromDate && toDate && fromDate > toDate) {
             toastManager?.showToast("'From' date cannot be after 'To' date.", "error");
             return;
           }
-          if (toDate && fromDate && toDate < fromDate) {
-            toastManager?.showToast("'To' date cannot be before 'From' date.", "error");
-            return;
-          }
-          // Error handling for due date filters
           const dueFromDate = dueFrom ? parseDateInput(dueFrom) : null;
           const dueToDate = dueTo ? parseDateInput(dueTo) : null;
           if (dueFromDate && dueToDate && dueFromDate > dueToDate) {
             toastManager?.showToast("'Due From' date cannot be after 'Due To' date.", "error");
             return;
-          }
-          if (dueToDate && dueFromDate && dueToDate < dueFromDate) {
-            toastManager?.showToast("'Due To' date cannot be before 'Due From' date.", "error");
-            return;
-          }
-          // Optionally: warn if filtering for completed tasks in the future
-          const today = new Date();
-          today.setHours(0,0,0,0);
-          if (fromDate && fromDate > today) {
-            toastManager?.showToast("'From' date is in the future. No completed tasks expected.", "error");
-          }
-          if (toDate && toDate > today) {
-            toastManager?.showToast("'To' date is in the future. No completed tasks expected.", "error");
           }
           setPage(1);
           setSearchTrigger(searchTrigger + 1);
@@ -217,6 +218,8 @@ const MaintenanceTaskLog: React.FC = () => {
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
+            minDate={fiveYearsAgo()}
+            maxDate={to ? (parseDateInput(to) && parseDateInput(to)! < todayEnd() ? parseDateInput(to) || undefined : todayEnd()) : todayEnd()}
           />
         </div>
         <div className="task-log-row-horizontal">
@@ -228,6 +231,8 @@ const MaintenanceTaskLog: React.FC = () => {
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
+            minDate={from ? (parseDateInput(from) && parseDateInput(from)! < todayEnd() ? parseDateInput(from) || undefined : fiveYearsAgo()) : fiveYearsAgo()}
+            maxDate={todayEnd()}
           />
         </div>
         <div className="task-log-row-horizontal">
@@ -239,6 +244,8 @@ const MaintenanceTaskLog: React.FC = () => {
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
+            minDate={fiveYearsAgo()}
+            maxDate={dueTo ? parseDateInput(dueTo) || undefined : fiveYearsFromNow()}
           />
         </div>
         <div className="task-log-row-horizontal">
@@ -250,6 +257,8 @@ const MaintenanceTaskLog: React.FC = () => {
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
+            minDate={dueFrom ? parseDateInput(dueFrom) || undefined : fiveYearsAgo()}
+            maxDate={fiveYearsFromNow()}
           />
         </div>
         <div className="task-log-row-horizontal" style={{ alignItems: "center", justifyContent: "center", gap: "1em", marginTop: "1em" }}>
@@ -295,108 +304,103 @@ const MaintenanceTaskLog: React.FC = () => {
         </div>
       </form>
 
-  {/* Results table or no-results message */}
-      {tasks.length === 0 && (category || status || from || to)
-        ? (
-          <div style={{
-            margin: "2em 0",
-            color: "#555",
-            fontSize: "1.35em",
-            fontWeight: 600,
-            textAlign: "center",
-            background: "#f6f6f8",
-            borderRadius: 12,
-            padding: "1.5em 1em",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.04)"
-          }}>
-            <span style={{ display: "block", marginBottom: "0.5em" }}>
-              No tasks match your current filters.
-            </span>
-            <span style={{ fontWeight: 400, fontSize: "1em", color: "#888" }}>
-              Tip: Try refining your search criteria or adjusting the date range.
-            </span>
-          </div>
-        )
-        : tasks.length > 0
-          ? (
-            <div style={{ width: "100%", overflowX: "auto", maxHeight: "500px", overflowY: "auto", margin: "1em 0", borderRadius: "8px", border: "1px solid #ccc" }}>
-              <table style={{ minWidth: 900, borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#f0f0f0" }}>
-                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Title</th>
-                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Category</th>
-                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Due Date</th>
-                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Completed Date</th>
-                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Status</th>
-                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>User</th>
-                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasks.map((task: any) => (
-                    <tr key={task.id}>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.title}</td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                        {(typeof task.dueDate === "number" && task.dueDate > 0)
-                          ? formatDateMMDDYYYY(new Date(task.dueDate))
-                          : <span style={{color: '#888'}}>No due date set</span>}
-                      </td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                        {task.completedAt
-                          ? formatDateMMDDYYYY(task.completedAt)
-                          : "N/A"}
+      {/* Results table or no-results message */}
+      {tasks.length === 0 ? (
+        <div style={{
+          margin: "2em 0",
+          color: "#555",
+          fontSize: "1.35em",
+          fontWeight: 600,
+          textAlign: "center",
+          background: "#f6f6f8",
+          borderRadius: 12,
+          padding: "1.5em 1em",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.04)"
+        }}>
+          <span style={{ display: "block", marginBottom: "0.5em" }}>
+            No tasks found.
+          </span>
+          <span style={{ fontWeight: 400, fontSize: "1em", color: "#888" }}>
+            Tip: Please refine your search, adjust filters, or try a different date range.
+          </span>
+        </div>
+      ) : (
+        <div style={{ width: "100%", overflowX: "auto", maxHeight: "500px", overflowY: "auto", margin: "1em 0", borderRadius: "8px", border: "1px solid #ccc" }}>
+          <table style={{ minWidth: 900, borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f0f0f0" }}>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Title</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Category</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Due Date</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Completed Date</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Status</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>User</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((task: any) => (
+                <tr key={task.id}>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.title}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                    {(typeof task.dueDate === "number" && task.dueDate > 0)
+                      ? formatDateMMDDYYYY(new Date(task.dueDate))
+                      : <span style={{color: '#888'}}>No due date set</span>}
+                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                    {task.completedAt
+                      ? formatDateMMDDYYYY(task.completedAt)
+                      : "N/A"}
 
-                      </td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                        <select
-                          value={task.status}
-                          onChange={e => {
-                            const newStatus = e.target.value;
-                            const token = localStorage.getItem("token");
-                            const apiBase = process.env.REACT_APP_API_URL || "";
-                            fetch(`${apiBase}/api/tasks/${task.id}/status`, {
-                              method: "PUT",
-                              headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": token ? `Bearer ${token}` : "",
-                              },
-                              body: JSON.stringify({ status: newStatus })
-                            })
-                              .then(res => {
-                                if (!res.ok) throw new Error("Failed to update status");
-                                toastManager?.showToast("Status updated successfully!", "success");
-                                setSearchTrigger(searchTrigger + 1);
-                              })
-                              .catch(err => {
-                                toastManager?.showToast("Error updating status: " + String(err), "error");
-                              });
-                          }}
-                          style={{ minWidth: 120 }}
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="In-Progress">In-Progress</option>
-                          <option value="Done">Done</option>
-                        </select>
-                      </td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
-                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                        <button
-                          onClick={() => handleDelete(task.id)}
-                          style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
-                          title="Delete Task"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-          : null
-      }
+                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                    <select
+                      value={task.status}
+                      onChange={e => {
+                        const newStatus = e.target.value;
+                        const token = localStorage.getItem("token");
+                        const apiBase = process.env.REACT_APP_API_URL || "";
+                        fetch(`${apiBase}/api/tasks/${task.id}/status`, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": token ? `Bearer ${token}` : "",
+                          },
+                          body: JSON.stringify({ status: newStatus })
+                        })
+                          .then(res => {
+                            if (!res.ok) throw new Error("Failed to update status");
+                            toastManager?.showToast("Status updated successfully!", "success");
+                            setSearchTrigger(searchTrigger + 1);
+                          })
+                          .catch(err => {
+                            toastManager?.showToast("Error updating status: " + String(err), "error");
+                          });
+                      }}
+                      style={{ minWidth: 120 }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="In-Progress">In-Progress</option>
+                      <option value="Done">Done</option>
+                    </select>
+                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                    <button
+                      onClick={() => handleDelete(task.id)}
+                      style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
+                      title="Delete Task"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
   {/* Pagination controls */}
       <div className="task-log-pagination">

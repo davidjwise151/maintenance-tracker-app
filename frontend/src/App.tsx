@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import AuthForm from "./AuthForm";
 import MaintenanceTaskLog from "./MaintenanceTaskLog";
 import { ToastManagerProvider } from "./ToastManager";
@@ -6,19 +6,33 @@ import { ToastManagerProvider } from "./ToastManager";
 /**
  * Main application component.
  * Handles authentication UI and testing access to a protected backend route.
+ *
+ * Environment Variables:
+ * - REACT_APP_API_URL: Backend API base URL
  */
 function App() {
-  // Handles sign out
-  const handleSignOut = () => {
+  /**
+   * Tracks login status
+   */
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  /**
+   * State for displaying the protected route message
+   */
+  const [protectedMsg, setProtectedMsg] = useState("");
+  /**
+   * State for loading indicator when fetching protected route
+   */
+  const [loading, setLoading] = useState(false);
+
+  /**
+   * Handles sign out
+   * Removes JWT token and resets state
+   */
+  const handleSignOut = useCallback(() => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
     setProtectedMsg("");
-  };
-  // State for displaying the protected route message
-  // State for displaying the protected route message
-  const [protectedMsg, setProtectedMsg] = useState("");
-  // Tracks login status
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  }, []);
 
   /**
    * Attempts to access a protected backend route.
@@ -26,32 +40,46 @@ function App() {
    * - Handles missing token, unauthorized, and network errors.
    * - Displays backend response or error message.
    */
-  const fetchProtected = async () => {
+  const fetchProtected = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setProtectedMsg("Unauthorized: No token found");
       return;
     }
+    setLoading(true);
     try {
-  const apiBase = process.env.REACT_APP_API_URL || "";
-  const res = await fetch(`${apiBase}/api/protected`, {
+      const apiBase = process.env.REACT_APP_API_URL || "";
+      const res = await fetch(`${apiBase}/api/protected`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401 || res.status === 403) {
         setProtectedMsg("Unauthorized");
+        setLoading(false);
         return;
       }
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        setProtectedMsg("Error: Invalid response from server");
+        setLoading(false);
+        return;
+      }
       setProtectedMsg(data.message || "No message returned");
     } catch (error) {
       setProtectedMsg("Network error: Unable to reach server");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   // Handles login success from AuthForm
-  const handleLoginSuccess = () => {
+  /**
+   * Called when AuthForm login succeeds
+   */
+  const handleLoginSuccess = useCallback(() => {
     setIsLoggedIn(true);
-  };
+  }, []);
 
   return (
     <ToastManagerProvider>
@@ -93,7 +121,7 @@ function App() {
               </span>
             </div>
             <span style={{ fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif', fontWeight: 400, fontSize: '1.05rem', color: '#888', marginTop: 4, letterSpacing: '-0.01em' }}>
-              Maintenance, organized beautifully
+              Built for Reliability
             </span>
           </header>
           <main>
@@ -101,8 +129,12 @@ function App() {
             {!isLoggedIn ? (
               <>
                 <AuthForm onLoginSuccess={handleLoginSuccess} />
-                <button onClick={fetchProtected}>Test Protected Route</button>
-                <div>{protectedMsg}</div>
+                <button onClick={fetchProtected} disabled={loading} style={{ marginTop: 12, minWidth: 160 }}>
+                  {loading ? "Testing..." : "Test Protected Route"}
+                </button>
+                <div style={{ marginTop: 8, color: protectedMsg.startsWith("Unauthorized") || protectedMsg.startsWith("Error") ? "#e74c3c" : "#222" }}>
+                  {protectedMsg}
+                </div>
               </>
             ) : (
               <MaintenanceTaskLog />
