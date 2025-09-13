@@ -11,15 +11,21 @@ import { authenticateJWT } from "./middleware/auth";
 const app = express();
 
 const allowedOrigins = [
+  'http://localhost:3000',
   'https://maintenance-tracker-app.vercel.app',
-  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/,
-  'http://localhost:3000', // Allow localhost for development
+  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
-})); // Enable CORS for production and Vercel preview domains
+})); // Secure CORS for production, Vercel preview, and localhost
 app.use(express.json()); // Parse JSON request bodies
 
 // Mount authentication routes at /api/auth
