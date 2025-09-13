@@ -17,5 +17,5 @@ AppDataSource.initialize()
   })
   .catch((error) => {
     console.error("TypeORM initialization error:", error);
-    process.exit(1); // Exit with error code for CI/CD and reliability
+    process.exit(1);
   });

@@ -69,7 +69,7 @@ function App() {
             <div>{protectedMsg}</div>
           </>
         ) : (
-      <MaintenanceTaskLog />
+          <MaintenanceTaskLog />
         )}
       </main>
     </div>
