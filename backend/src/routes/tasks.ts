@@ -128,7 +128,7 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
  */
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   // Extract task details from request body
-  const { title, category, status } = req.body;
+  const { title, category, status, dueDate } = req.body;
 
   // Get userId from JWT payload (added by authenticateJWT middleware)
   const jwtUser = (req as any).user;
@@ -154,6 +154,7 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     title,
     category,
     status,
+    dueDate,
     completedAt,
     user,
   });

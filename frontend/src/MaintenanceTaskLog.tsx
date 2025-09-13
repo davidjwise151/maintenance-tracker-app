@@ -165,11 +165,12 @@ const MaintenanceTaskLog: React.FC = () => {
         : tasks.length > 0
           ? (
             <div style={{ width: "100%", overflowX: "auto", maxHeight: "500px", overflowY: "auto", margin: "1em 0", borderRadius: "8px", border: "1px solid #ccc" }}>
-              <table style={{ minWidth: 800, borderCollapse: "collapse" }}>
+              <table style={{ minWidth: 900, borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#f0f0f0" }}>
                     <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Title</th>
                     <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Category</th>
+                    <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Due Date</th>
                     <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Completed Date</th>
                     <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Status</th>
                     <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>User</th>
@@ -181,6 +182,7 @@ const MaintenanceTaskLog: React.FC = () => {
                     <tr key={task.id}>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.title}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
+                      <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "N/A"}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         <select

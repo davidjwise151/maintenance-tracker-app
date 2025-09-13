@@ -32,8 +32,9 @@ export class Task {
     @Column({ nullable: true })
     category?: string;
 
+
   /**
-   * Date when the task is due (timestamp or ISO string).
+   * Date when the task is due (timestamp).
    */
   @Column({ type: "bigint", nullable: true })
   dueDate?: number;

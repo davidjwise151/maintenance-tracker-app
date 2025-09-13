@@ -36,6 +36,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   ];
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("Pending");
+  const [dueDate, setDueDate] = useState(""); // ISO date string
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -64,14 +65,16 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
           title,
           category,
           status,
+          dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Unknown error");
       setSuccess("Task created successfully!");
-      setTitle("");
-      setCategory("");
-      setStatus("Pending");
+  setTitle("");
+  setCategory("");
+  setStatus("Pending");
+  setDueDate("");
       if (onTaskCreated) onTaskCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -88,6 +91,16 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
         onChange={e => setTitle(e.target.value)}
         required
       />
+      {/* Due date input */}
+      <label htmlFor="due-date-input" style={{ marginRight: "1em" }}>
+        <strong>Due Date:</strong>
+        <input
+          id="due-date-input"
+          type="date"
+          value={dueDate}
+          onChange={e => setDueDate(e.target.value)}
+        />
+      </label>
       {/* Category dropdown to match MaintenanceTaskLog */}
       <label htmlFor="category-select" style={{ marginRight: "1em" }}>
         <strong>Category:</strong>
