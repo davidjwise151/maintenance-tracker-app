@@ -30,6 +30,7 @@ function App() {
    */
   const [reminders, setReminders] = useState<{ upcoming: any[]; late: any[] }>({ upcoming: [], late: [] });
   const [remindersLoading, setRemindersLoading] = useState(false);
+  const [remindersMinimized, setRemindersMinimized] = useState(false);
 
   /**
    * Handles sign out
@@ -142,37 +143,62 @@ function App() {
           </button>
         )}
         <div style={{ maxWidth: 600, margin: "4em auto 2em auto", padding: "2em", borderRadius: 16, background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
-          {/* Reminders Section */}
+          {/* Reminders Section - styled for Mac OS aesthetic, below logo/phrase, can be minimized */}
           {isLoggedIn && (
-            <div style={{ marginBottom: "2em" }}>
-              <h3 style={{ fontSize: "1.2rem", fontWeight: 600, color: "#222" }}>Reminders</h3>
-              {remindersLoading ? (
-                <div style={{ color: "#888" }}>Loading reminders...</div>
-              ) : reminders.upcoming.length === 0 && reminders.late.length === 0 ? (
-                <div style={{ color: "#888" }}>No upcoming or late tasks.</div>
-              ) : (
-                <>
-                  {reminders.late.length > 0 && (
-                    <div style={{ color: "#e74c3c", marginBottom: 8 }}>
-                      <strong>Late Tasks:</strong>
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {reminders.late.map((task, idx) => (
-                          <li key={task.id || idx}>{task.title} (Due: {task.dueDate ? formatDateMMDDYYYY(new Date(task.dueDate)) : "N/A"})</li>
-                        ))}
-                      </ul>
-                    </div>
+            <div style={{ marginBottom: "2em", transition: "all 0.2s" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: remindersMinimized ? "#f5f5f7" : "#f5f5f7", borderRadius: 10, boxShadow: remindersMinimized ? "none" : "0 2px 8px rgba(0,0,0,0.04)", padding: "0.7em 1.2em", marginBottom: remindersMinimized ? 0 : 12, border: "1px solid #e0e0e0" }}>
+                <span style={{ fontWeight: 600, fontSize: "1.08rem", color: "#222", fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif', letterSpacing: '-0.01em' }}>
+                  Reminders
+                </span>
+                <button
+                  aria-label={remindersMinimized ? "Show reminders" : "Hide reminders"}
+                  onClick={() => setRemindersMinimized(m => !m)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#888",
+                    fontSize: "1.2rem",
+                    cursor: "pointer",
+                    padding: 0,
+                    marginLeft: 8,
+                    borderRadius: 6,
+                    transition: "background 0.2s"
+                  }}
+                >
+                  {remindersMinimized ? "▸" : "▾"}
+                </button>
+              </div>
+              {!remindersMinimized && (
+                <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,0.03)", padding: "0.7em 1.2em", fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif', fontSize: "1rem", color: "#222", border: "1px solid #e0e0e0" }}>
+                  {remindersLoading ? (
+                    <div style={{ color: "#888" }}>Loading reminders...</div>
+                  ) : reminders.upcoming.length === 0 && reminders.late.length === 0 ? (
+                    <div style={{ color: "#888" }}>No upcoming or late tasks.</div>
+                  ) : (
+                    <>
+                      {reminders.late.length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ color: "#e74c3c", fontWeight: 700, fontSize: "1.08rem", marginBottom: 2, fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif' }}>Late Tasks:</div>
+                          <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
+                            {reminders.late.map((task, idx) => (
+                              <li key={task.id || idx} style={{ marginBottom: 2, color: "#444", fontWeight: 500, fontSize: "0.98rem" }}>{task.title} <span style={{ color: "#888", fontWeight: 400 }}>(Due: {task.dueDate ? formatDateMMDDYYYY(new Date(task.dueDate)) : "N/A"})</span></li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {reminders.upcoming.length > 0 && (
+                        <div>
+                          <div style={{ color: "#2980b9", fontWeight: 700, fontSize: "1.08rem", marginBottom: 2, fontFamily: 'SF Pro Text, Helvetica Neue, Arial, sans-serif' }}>Upcoming Tasks:</div>
+                          <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
+                            {reminders.upcoming.map((task, idx) => (
+                              <li key={task.id || idx} style={{ marginBottom: 2, color: "#444", fontWeight: 500, fontSize: "0.98rem" }}>{task.title} <span style={{ color: "#888", fontWeight: 400 }}>(Due: {task.dueDate ? formatDateMMDDYYYY(new Date(task.dueDate)) : "N/A"})</span></li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
                   )}
-                  {reminders.upcoming.length > 0 && (
-                    <div style={{ color: "#2980b9" }}>
-                      <strong>Upcoming Tasks:</strong>
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {reminders.upcoming.map((task, idx) => (
-                          <li key={task.id || idx}>{task.title} (Due: {task.dueDate ? formatDateMMDDYYYY(new Date(task.dueDate)) : "N/A"})</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
             </div>
           )}
