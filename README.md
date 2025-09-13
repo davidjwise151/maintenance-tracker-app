@@ -9,12 +9,15 @@ Computer Science Major (Cybersecurity Emphasis), Certificate in Cryptography and
 
 Maintenance Tracker App is a modern web application built with React, Node.js, and TypeScript, designed to help users efficiently organize, track, and manage maintenance tasks. Drawing on best practices in secure software development, this app provides a clean, intuitive interface for logging and categorizing tasks, with a foundation for rapid feature expansion.
 
+
 **Core Features (v0.1 Beta):**
 - **User Authentication:** Secure registration and login using JWT.
 - **Task Management:** Create, view, update, and delete maintenance tasks.
 - **Task Status Tracking:** Set and update status (Pending, In-Progress, Done) for each task. Filter and report by status in the UI and API.
-- **Categories/Tags:** Assign tasks to categories such as plumbing, electrical, and more.
+- **Categories/Tags:** Assign tasks to categories such as plumbing, electrical, and more. Category dropdown now shows a single "All" option for clarity.
 - **Database Security:** Persistent storage using SQLite and TypeORM, with parameterized queries to prevent SQL injection.
+- **Codebase Cleanup:** All major files refactored for readability, maintainability, and consistent code style. Unused code and dependencies removed.
+- **UI/UX Improvements:** Modern, responsive interface with clear filtering, pagination, and feedback via toast notifications.
 
 
 **Planned Features:**
@@ -61,7 +64,8 @@ Maintenance Tracker App is a modern web application built with React, Node.js, a
 
 ---
 
-This project demonstrates fast, iterative development with a focus on code quality, usability, and security. Feature requests and feedback are welcome as the app evolves!
+
+This project demonstrates fast, iterative development with a focus on code quality, usability, and security. The codebase has been fully reviewed and cleaned for the v0.1 Beta milestone. Feature requests and feedback are welcome as the app evolves!
 
 ---
 
@@ -125,29 +129,43 @@ This project demonstrates fast, iterative development with a focus on code quali
 
 ---
 
-## Developer Notes
 
-- **Backend Structure:**  
-  - `src/entity/`: TypeORM models (User, Task)
-  - `src/routes/`: Express route handlers (auth, tasks)
-  - `src/data-source.ts`: TypeORM configuration
-  - `src/app.ts`: Express app setup
-  - `src/server.ts`: Server entry point
+## Developer Notes & Recent Improvements
 
-- **Adding Features:**  
-  - Create new entities in `src/entity/`
-  - Add new routes in `src/routes/`
-  - Use TypeORM for all database access
 
-- **Security:**  
-  - All queries use TypeORM (parameterized, prevents SQL injection)
-  - Passwords are hashed with bcrypt
-  - JWT used for authentication
-  - Input validated with express-validator
+**Backend Structure:**
+   - `src/entity/`: TypeORM models (User, Task)
+   - `src/routes/`: Express route handlers (auth, tasks)
+   - `src/data-source.ts`: TypeORM configuration
+   - `src/app.ts`: Express app setup
+   - `src/server.ts`: Server entry point
 
-- **Development:**  
-  - Use `npm run dev` for backend (nodemon auto-restarts)
-  - Use VS Code SQLite extension to inspect `dev.db`
+**Frontend Structure:**
+   - `src/`: Main React components (App, AuthForm, CreateTaskForm, MaintenanceTaskLog, Toast)
+   - `public/`: Static assets and HTML
+   - `build/`: Production build output
+
+**Recent Improvements:**
+   - Refactored all major files for clarity and maintainability
+   - Removed unused code and dependencies
+   - Fixed category dropdown to show only a single "All" option
+   - Improved comments and docstrings throughout codebase
+   - Ensured consistent code style and formatting
+
+**Adding Features:**
+   - Create new entities in `src/entity/`
+   - Add new routes in `src/routes/`
+   - Use TypeORM for all database access
+
+**Security:**
+   - All queries use TypeORM (parameterized, prevents SQL injection)
+   - Passwords are hashed with bcrypt
+   - JWT used for authentication
+   - Input validated with express-validator
+
+**Development:**
+   - Use `npm run dev` for backend (nodemon auto-restarts)
+   - Use VS Code SQLite extension to inspect `dev.db`
 
 ---
 

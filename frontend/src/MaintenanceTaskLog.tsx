@@ -43,7 +43,6 @@ const MaintenanceTaskLog: React.FC = () => {
   const [to, setTo] = useState(""); // Filter by end date
   // Maintenance categories for dropdown
   const categories = [
-    "",
     "Plumbing",
     "Flooring",
     "Inspections",
@@ -136,7 +135,7 @@ const MaintenanceTaskLog: React.FC = () => {
           <select value={category} onChange={e => setCategory(e.target.value)}>
             <option value="">All</option>
             {categories.map(cat => (
-              <option key={cat} value={cat}>{cat || "All"}</option>
+              <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
         </label>

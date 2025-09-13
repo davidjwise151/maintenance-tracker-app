@@ -1,11 +1,26 @@
+
 import React, { useState } from "react";
 
 
-interface CreateTaskFormProps {
-  onTaskCreated?: () => void;
-}
+  /**
+   * Optional callback to trigger when a new task is created.
+   */
+  /**
+   * Props for CreateTaskForm component.
+   * @property onTaskCreated Optional callback to trigger when a new task is created.
+   */
+  interface CreateTaskFormProps {
+    onTaskCreated?: () => void;
+  }
 
+/**
+ * CreateTaskForm component allows users to create a new maintenance task.
+ * - Handles form submission and validation
+ * - Calls backend API to create a task
+ * - Shows feedback on success or error
+ */
 const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
+  // State for form fields and feedback
   const [title, setTitle] = useState("");
   // Use the same category options as MaintenanceTaskLog
   const categories = [
@@ -24,6 +39,10 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  /**
+   * Handles form submission to create a new task.
+   * Validates input and calls backend API.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
