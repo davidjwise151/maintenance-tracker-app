@@ -142,7 +142,6 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
  */
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   const { title, category, status, dueDate } = req.body;
-  console.log('Received dueDate from request body:', dueDate);
 
   // Get userId from JWT payload (added by authenticateJWT middleware)
   const jwtUser = (req as any).user;
@@ -172,9 +171,7 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     completedAt,
     user,
   });
-  console.log('Task entity before save:', task);
   const savedTask = await taskRepo.findOneBy({ id: task.id });
-  console.log('Task entity after save:', savedTask);
   await taskRepo.save(task);
   res.json({
     id: task.id,

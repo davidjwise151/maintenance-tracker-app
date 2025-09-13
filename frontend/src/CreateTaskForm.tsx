@@ -1,5 +1,9 @@
+import "./styles/modern-form.css";
 
 import React, { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { formatDateMMDDYYYY, parseDateInput } from "./utils/dateUtils";
 
 
   /**
@@ -36,7 +40,8 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   ];
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("Pending");
-  const [dueDate, setDueDate] = useState(""); // ISO date string
+  // Due date input uses yyyy-mm-dd from <input type="date">, displayed as MM/DD/YYYY in UI
+  const [dueDate, setDueDate] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -84,52 +89,63 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: "2em" }}>
-      <h3>Create New Task</h3>
+  <form onSubmit={handleSubmit} className="modern-form modern-form-horizontal modern-form-contrast">
+    <h3 className="form-title">Create New Task</h3>
+    <div className="form-row-horizontal">
+      <label htmlFor="title-input" className="form-label form-label-bold">Title</label>
       <input
+        id="title-input"
         type="text"
-        placeholder="Title"
+        className="form-input"
+        placeholder="Task Title"
         value={title}
         onChange={e => setTitle(e.target.value)}
         required
       />
-      {/* Due date input */}
-      <label htmlFor="due-date-input" style={{ marginRight: "1em" }}>
-        <strong>Due Date:</strong>
-        <input
-          id="due-date-input"
-          type="date"
-          value={dueDate}
-          onChange={e => setDueDate(e.target.value)}
-        />
-      </label>
-      {/* Category dropdown to match MaintenanceTaskLog */}
-      <label htmlFor="category-select" style={{ marginRight: "1em" }}>
-        <strong>Category:</strong>
-        <select
-          id="category-select"
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-          required
-        >
-          {categories.map(cat => (
-            <option key={cat} value={cat}>{cat || "All"}</option>
-          ))}
-        </select>
-      </label>
-      {/* Status dropdown to match MaintenanceTaskLog */}
-      <label htmlFor="status-select" style={{ marginRight: "1em" }}>
-        <strong>Status:</strong>
-        <select id="status-select" value={status} onChange={e => setStatus(e.target.value)}>
-          <option value="Pending">Pending</option>
-          <option value="In-Progress">In-Progress</option>
-          <option value="Done">Done</option>
-        </select>
-      </label>
-      <button type="submit">Create Task</button>
-      {error && <div style={{ color: "red" }}>{error}</div>}
-      {success && <div style={{ color: "green" }}>{success}</div>}
-    </form>
+    </div>
+    <div className="form-row-horizontal">
+      <label htmlFor="due-date-input" className="form-label form-label-bold">Due Date</label>
+      <DatePicker
+        id="due-date-input"
+        selected={dueDate ? parseDateInput(dueDate) : null}
+        onChange={(date: Date | null) => setDueDate(date ? formatDateMMDDYYYY(date) : "")}
+        dateFormat="MM/dd/yyyy"
+        placeholderText="MM/DD/YYYY"
+        isClearable
+        className="datepicker-input"
+      />
+    </div>
+    <div className="form-row-horizontal">
+      <label htmlFor="category-select" className="form-label form-label-bold">Category</label>
+      <select
+        id="category-select"
+        className="form-input"
+        value={category}
+        onChange={e => setCategory(e.target.value)}
+      >
+        <option value="">Select Category</option>
+        {categories.map(cat => (
+          <option key={cat} value={cat}>{cat}</option>
+        ))}
+      </select>
+    </div>
+    <div className="form-row-horizontal">
+      <label htmlFor="status-select" className="form-label form-label-bold">Status</label>
+      <select
+        id="status-select"
+        className="form-input"
+        value={status}
+        onChange={e => setStatus(e.target.value)}
+      >
+        <option value="Pending">Pending</option>
+        <option value="In-Progress">In-Progress</option>
+        <option value="Done">Done</option>
+      </select>
+    </div>
+    <button type="submit" className="form-button">Create Task</button>
+    {error && <div className="form-error">{error}</div>}
+    {success && <div className="form-success">{success}</div>}
+  </form>
   );
 };
 

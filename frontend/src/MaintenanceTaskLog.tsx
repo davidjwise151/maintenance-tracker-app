@@ -1,19 +1,16 @@
 
 import React, { useState, useEffect } from "react";
+import { formatDateMMDDYYYY, parseDateInput } from "./utils/dateUtils";
+import DatePicker from "react-datepicker";
+import "./styles/datepicker.css";
+import "./styles/modern-form.css";
+import "react-datepicker/dist/react-datepicker.css";
 import CreateTaskForm from "./CreateTaskForm";
 import Toast from "./Toast";
 
 
 // Helper function for DD/MM/YYYY formatting
-// Helper function for DD/MM/YYYY formatting
-function formatDateDDMMYYYY(date: number | string): string {
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '';
-  const dd = d.getDate().toString().padStart(2, '0');
-  const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-  const yyyy = d.getFullYear().toString();
-  return dd + '/' + mm + '/' + yyyy;
-}
+// ...date helpers now imported from dateUtils.ts
 
 /**
  * MaintenanceTaskLog component displays a log/history view of all maintenance tasks.
@@ -83,13 +80,19 @@ const MaintenanceTaskLog: React.FC = () => {
     if (status) params.append("status", status);
     // Completed date filter: 'from' is start, 'to' is inclusive end of selected day
     // Helper to parse MM/DD/YYYY string to Date
-    // Date input fields return yyyy-mm-dd, so parse accordingly
+    /**
+     * Parse a yyyy-mm-dd string from <input type="date"> to JS Date.
+     * If endOfDay is true, sets time to 23:59:59.999 for inclusive filtering.
+     * Returns null if invalid.
+     */
     function parseDateInput(str: string, endOfDay = false): Date | null {
-      if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
-      const [yyyy, mm, dd] = str.split('-').map(Number);
-      const d = new Date(yyyy, mm - 1, dd);
-      if (endOfDay) d.setHours(23, 59, 59, 999); else d.setHours(0, 0, 0, 0);
-      return d;
+  // Accept MM/DD/YYYY format only
+  // Accept yyyy-mm-dd format from <input type="date">
+  if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+  const [yyyy, mm, dd] = str.split('-').map(Number);
+  const d = new Date(yyyy, mm - 1, dd);
+  d.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  return d;
     }
     // Completed date filter: 'from' is start of day, 'to' is end of day (inclusive)
     if (from) {
@@ -152,77 +155,92 @@ const MaintenanceTaskLog: React.FC = () => {
    * Renders UI: filter form, results table, pagination, and toast notifications.
    */
   return (
-    <div>
-  {/* CreateTaskForm: triggers refresh on new task creation */}
+    <div className="task-log-container task-log-contrast">
+      {/* CreateTaskForm: triggers refresh on new task creation */}
       <CreateTaskForm onTaskCreated={refreshTasks} />
-      <h2>Maintenance Task Log</h2>
-  {/* Results counter */}
-      <div style={{ marginBottom: "0.5em", fontWeight: "bold" }}>
+      <h3 className="task-log-title">Maintenance Task Log</h3>
+      {/* Results counter */}
+      <div style={{ marginBottom: "0.5em", fontWeight: "bold", fontSize: "1.08em" }}>
         Showing {tasks.length} result{tasks.length !== 1 ? "s" : ""}
         {total > tasks.length ? ` (of ${total} total)` : ""}
       </div>
-  {/* Filter/search form */}
+      {/* Filter/search form */}
       <form
         onSubmit={e => {
           e.preventDefault();
           setPage(1);
           setSearchTrigger(searchTrigger + 1);
         }}
-        style={{
-          marginBottom: "1em",
-          padding: "1em",
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-          background: "#f9f9f9",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "1.5em"
-        }}
+        className="task-log-filters task-log-filters-horizontal"
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
-          <label><strong>Category</strong>
-            <select value={category} onChange={e => setCategory(e.target.value)}>
-              <option value="">All</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </label>
+        <div className="task-log-row-horizontal">
+          <label className="task-log-label task-log-label-bold">Category</label>
+          <select className="task-log-select" value={category} onChange={e => setCategory(e.target.value)}>
+            <option value="">All</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
-          <label><strong>Status</strong>
-            <select value={status} onChange={e => setStatus(e.target.value)}>
-              <option value="">All</option>
-              <option value="Pending">Pending</option>
-              <option value="In-Progress">In-Progress</option>
-              <option value="Done">Done</option>
-            </select>
-          </label>
+        <div className="task-log-row-horizontal">
+          <label className="task-log-label task-log-label-bold">Status</label>
+          <select className="task-log-select" value={status} onChange={e => setStatus(e.target.value)}>
+            <option value="">All</option>
+            <option value="Pending">Pending</option>
+            <option value="In-Progress">In-Progress</option>
+            <option value="Done">Done</option>
+          </select>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
-          <label><strong>Completed From</strong>
-            <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
-          </label>
+        <div className="task-log-row-horizontal">
+          <label className="task-log-label task-log-label-bold">Completed From</label>
+          <DatePicker
+            selected={from ? parseDateInput(from) : null}
+            onChange={(date: Date | null) => setFrom(date ? formatDateMMDDYYYY(date) : "")}
+            dateFormat="MM/dd/yyyy"
+            placeholderText="MM/DD/YYYY"
+            isClearable
+            className="task-log-input"
+          />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
-          <label><strong>Completed To</strong>
-            <input type="date" value={to} onChange={e => setTo(e.target.value)} />
-          </label>
+        <div className="task-log-row-horizontal">
+          <label className="task-log-label task-log-label-bold">Completed To</label>
+          <DatePicker
+            selected={to ? parseDateInput(to) : null}
+            onChange={(date: Date | null) => setTo(date ? formatDateMMDDYYYY(date) : "")}
+            dateFormat="MM/dd/yyyy"
+            placeholderText="MM/DD/YYYY"
+            isClearable
+            className="task-log-input"
+          />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
-          <label><strong>Due Date From</strong>
-            <input type="date" value={dueFrom} onChange={e => setDueFrom(e.target.value)} />
-          </label>
+        <div className="task-log-row-horizontal">
+          <label className="task-log-label task-log-label-bold">Due Date From</label>
+          <DatePicker
+            selected={dueFrom ? parseDateInput(dueFrom) : null}
+            onChange={(date: Date | null) => setDueFrom(date ? formatDateMMDDYYYY(date) : "")}
+            dateFormat="MM/dd/yyyy"
+            placeholderText="MM/DD/YYYY"
+            isClearable
+            className="task-log-input"
+          />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
-          <label><strong>Due Date To</strong>
-            <input type="date" value={dueTo} onChange={e => setDueTo(e.target.value)} />
-          </label>
+        <div className="task-log-row-horizontal">
+          <label className="task-log-label task-log-label-bold">Due Date To</label>
+          <DatePicker
+            selected={dueTo ? parseDateInput(dueTo) : null}
+            onChange={(date: Date | null) => setDueTo(date ? formatDateMMDDYYYY(date) : "")}
+            dateFormat="MM/dd/yyyy"
+            placeholderText="MM/DD/YYYY"
+            isClearable
+            className="task-log-input"
+          />
         </div>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "1em" }}>
-          <button type="submit">Search</button>
+        <div className="task-log-row-horizontal" style={{ alignItems: "flex-end", gap: "1em" }}>
+          <button type="submit" className="task-log-button">Search</button>
           <button
             type="button"
+            className="task-log-button"
+            style={{ background: "#fff", color: "#1976d2", border: "1px solid #1976d2" }}
             onClick={() => {
               setCategory("");
               setStatus("");
@@ -264,14 +282,14 @@ const MaintenanceTaskLog: React.FC = () => {
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.category || "Uncategorized"}</td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         {(typeof task.dueDate === "number" && task.dueDate > 0)
-                          ? formatDateDDMMYYYY(task.dueDate)
+                          ? formatDateMMDDYYYY(task.dueDate)
                           : (typeof task.dueDate === "string" && !isNaN(Date.parse(task.dueDate))
-                            ? formatDateDDMMYYYY(task.dueDate)
+                            ? formatDateMMDDYYYY(task.dueDate)
                             : <span style={{color: '#888'}}>No due date</span>)}
                       </td>
                       <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                         {task.completedAt
-                          ? formatDateDDMMYYYY(task.completedAt)
+                          ? formatDateMMDDYYYY(task.completedAt)
                           : "N/A"}
 
                       </td>
@@ -326,10 +344,10 @@ const MaintenanceTaskLog: React.FC = () => {
       }
 
   {/* Pagination controls */}
-      <div style={{ marginBottom: "1em" }}>
-        <button onClick={() => setPage(page - 1)} disabled={page === 1}>Previous</button>
-        <span style={{ margin: "0 1em" }}> Page {page} of {Math.ceil(total / pageSize) || 1} </span>
-        <button onClick={() => setPage(page + 1)} disabled={page * pageSize >= total}>Next</button>
+      <div className="task-log-pagination">
+        <button className="task-log-button" onClick={() => setPage(page - 1)} disabled={page === 1}>Previous</button>
+        <span className="task-log-pagination-info"> Page {page} of {Math.ceil(total / pageSize) || 1} </span>
+        <button className="task-log-button" onClick={() => setPage(page + 1)} disabled={page * pageSize >= total}>Next</button>
       </div>
 
   {/* Toast notification */}
