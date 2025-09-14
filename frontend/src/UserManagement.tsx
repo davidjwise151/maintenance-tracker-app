@@ -10,30 +10,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ userRole }) => {
   const [loading, setLoading] = useState(false);
   const [editUserId, setEditUserId] = useState<string>("");
   const [editRole, setEditRole] = useState<string>("");
+  const [permissionError, setPermissionError] = useState<string>("");
   const toastManager = useContext(ToastManagerContext);
 
-  // Fetch all users (admin only)
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    const token = sessionStorage.getItem("token");
-    const apiBase = process.env.REACT_APP_API_URL || "";
-    try {
-      const res = await fetch(`${apiBase}/api/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch users");
-      const data = await res.json();
-      setUsers(data.users || []);
-    } catch (err) {
-      toastManager?.showToast("Error fetching users: " + String(err), "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [toastManager]);
-
   useEffect(() => {
-    if (userRole === "admin") fetchUsers();
-  }, [userRole, fetchUsers]);
+    if (userRole === "admin") {
+      const fetchUsers = async () => {
+        setLoading(true);
+        setPermissionError("");
+        const token = sessionStorage.getItem("token");
+        const apiBase = process.env.REACT_APP_API_URL || "";
+        try {
+          const res = await fetch(`${apiBase}/api/users`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.status === 403) {
+            setPermissionError("You do not have permission to view users. Please log in as an admin.");
+            setUsers([]);
+            return;
+          }
+          if (!res.ok) throw new Error("Failed to fetch users");
+          const data = await res.json();
+          setUsers(data.users || []);
+        } catch (err) {
+          toastManager?.showToast("Error fetching users: " + String(err), "error");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchUsers();
+    }
+  }, [userRole, toastManager]);
 
   // Edit user role
   const handleEditRole = async (userId: string) => {
@@ -53,7 +60,22 @@ const UserManagement: React.FC<UserManagementProps> = ({ userRole }) => {
       toastManager?.showToast("Role updated!", "success");
       setEditUserId("");
       setEditRole("");
-      fetchUsers();
+      // Refetch users after role update
+      if (userRole === "admin") {
+        setLoading(true);
+        try {
+          const res = await fetch(`${apiBase}/api/users`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error("Failed to fetch users");
+          const data = await res.json();
+          setUsers(data.users || []);
+        } catch (err) {
+          toastManager?.showToast("Error fetching users: " + String(err), "error");
+        } finally {
+          setLoading(false);
+        }
+      }
     } catch (err) {
       toastManager?.showToast("Error updating role: " + String(err), "error");
     }
@@ -71,13 +93,36 @@ const UserManagement: React.FC<UserManagementProps> = ({ userRole }) => {
       });
       if (!res.ok) throw new Error("Failed to delete user");
       toastManager?.showToast("User deleted!", "success");
-      fetchUsers();
+      // Refetch users after deletion
+      if (userRole === "admin") {
+        setLoading(true);
+        try {
+          const res = await fetch(`${apiBase}/api/users`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error("Failed to fetch users");
+          const data = await res.json();
+          setUsers(data.users || []);
+        } catch (err) {
+          toastManager?.showToast("Error fetching users: " + String(err), "error");
+        } finally {
+          setLoading(false);
+        }
+      }
     } catch (err) {
       toastManager?.showToast("Error deleting user: " + String(err), "error");
     }
   };
 
   if (userRole !== "admin") return null;
+  if (permissionError) {
+    return (
+      <div style={{ margin: "2em 0", padding: "2em", background: "#fff", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", color: "#e74c3c" }}>
+        <h3>User Management</h3>
+        <div>{permissionError}</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ margin: "2em 0", padding: "2em", background: "#fff", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>

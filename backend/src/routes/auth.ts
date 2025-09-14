@@ -103,9 +103,9 @@ router.post(
     if (!valid) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
-    // Issue JWT token
-    const token = jwt.sign({ email, id: user.id }, JWT_SECRET, { expiresIn: "1h" });
-    res.json({ token });
+  // Issue JWT token with role
+  const token = jwt.sign({ email, id: user.id, role: user.role }, JWT_SECRET, { expiresIn: "1h" });
+  res.json({ token });
   }
 );
 

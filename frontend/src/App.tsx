@@ -126,6 +126,23 @@ function App() {
     }
   }, []);
 
+  // Automatically refresh user role after a role change
+  const refreshUserRole = useCallback(async () => {
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    try {
+      const res = await fetch(`${apiBase}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const userData = await res.json();
+        setUserRole(userData.role || "");
+        if (userData.role) sessionStorage.setItem("role", userData.role);
+      }
+    } catch {}
+  }, []);
+
   // Reminders fetch logic as a reusable function
   const fetchReminders = useCallback(async () => {
     const token = sessionStorage.getItem("token");

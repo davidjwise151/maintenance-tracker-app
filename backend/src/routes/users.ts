@@ -10,7 +10,7 @@ const router = Router();
 // Only admin users can list all users
 router.get("/", authenticateJWT, authorizeRoles("admin"), async (req, res) => {
   const userRepo = AppDataSource.getRepository(User);
-  const users = await userRepo.find({ select: ["id", "email"] });
+  const users = await userRepo.find({ select: ["id", "email", "role"] });
   res.json({ users });
 });
 
