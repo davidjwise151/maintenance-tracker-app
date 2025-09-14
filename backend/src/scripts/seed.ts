@@ -13,11 +13,11 @@ async function seed() {
 
   // Create 5 users
   const usersData = [
-    { email: 'alice@example.com', password: 'Password1!' },
-    { email: 'bob@example.com', password: 'Password1!' },
-    { email: 'carol@example.com', password: 'Password1!' },
-    { email: 'dave@example.com', password: 'Password1!' },
-    { email: 'eve@example.com', password: 'Password1!' },
+    { email: 'alice@example.com', password: 'Password!' },
+    { email: 'bob@example.com', password: 'Password!' },
+    { email: 'carol@example.com', password: 'Password!' },
+    { email: 'dave@example.com', password: 'Password!' },
+    { email: 'eve@example.com', password: 'Password!' },
   ];
 
   const users: User[] = [];
