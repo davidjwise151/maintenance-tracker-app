@@ -1,6 +1,6 @@
 
 import { Router, Request, Response } from "express";
-import { authenticateJWT } from "../middleware/auth";
+import { authenticateJWT, authorizeRoles } from "../middleware/auth";
 import { AppDataSource } from "../data-source";
 import { Task } from "../entity/Task";
 import { User } from "../entity/User";
@@ -9,13 +9,14 @@ import { LessThan, MoreThan, Between, IsNull } from "typeorm";
 const router = Router();
 
 /**
- * GET /api/users
- * Returns all users (id, email) for assignment dropdowns.
- */
-router.get('/api/users', async (req: Request, res: Response) => {
+// GET /api/users
+// Returns all users (id, email) for assignment dropdowns.
+// Only admin users can list all users
+router.get('/api/users', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
   const userRepo = AppDataSource.getRepository(User);
   const users = await userRepo.find({ select: ['id', 'email'] });
   res.json({ users });
+});
 });
 
 /**
@@ -37,7 +38,7 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   const task = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
-  }
+4  }
   const assignee = await userRepo.findOneBy({ id: assigneeId });
   if (!assignee) {
     return res.status(400).json({ error: 'Assignee not found.' });
@@ -132,7 +133,8 @@ router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => 
  * Requires authentication (JWT).
  * Returns: { success: true } or { error: string }
  */
-router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
+// Only admin users can delete any task
+router.delete('/:id', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
