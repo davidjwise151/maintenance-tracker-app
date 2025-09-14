@@ -20,19 +20,13 @@ if (!JWT_SECRET) {
 /**
  * POST /api/auth/register
  * Registers a new user with email and password.
- * - Validates email and password length.
- * - Hashes password before storing.
- * - Prevents duplicate registration.
- * - Returns: { message, email, id } on success, { error } on failure.
- * Access: Public
- */
-/**
- * POST /api/auth/register
- * Registers a new user with email and password.
- * - Validates email and password length
- * - Hashes password before storing
+ * Security:
+ * - Validates email and password length (minimum 6 chars)
+ * - Normalizes email to lowercase
+ * - Hashes password securely with bcrypt
  * - Prevents duplicate registration
- * - Returns: { message, email, id } on success, { error } on failure
+ * - Never returns password in response
+ * Returns: { message, email, id } on success, { error } on failure
  * Access: Public
  */
 router.post(
@@ -49,7 +43,6 @@ router.post(
     }
     let { email, password } = req.body;
     email = email.toLowerCase();
-    console.log('Registering user in DB:', process.env.DB_PATH, email);
     const userRepo = AppDataSource.getRepository(User);
     // Check for existing user
     const existingUser = await userRepo.findOneBy({ email });
@@ -66,9 +59,13 @@ router.post(
 /**
  * POST /api/auth/login
  * Authenticates user and issues JWT token.
+ * Security:
  * - Validates email and password
- * - Checks credentials and password hash
- * - Returns: { token } on success, { error } on failure
+ * - Normalizes email to lowercase
+ * - Checks credentials and password hash securely
+ * - Issues JWT token with short expiration (1h)
+ * - Never returns password in response
+ * Returns: { token } on success, { error } on failure
  * Access: Public
  */
 router.post(
@@ -85,7 +82,6 @@ router.post(
     }
     let { email, password } = req.body;
     email = email.toLowerCase();
-    console.log('Authenticating user from DB:', process.env.DB_PATH, email);
     const userRepo = AppDataSource.getRepository(User);
     // Find user by email
     const user = await userRepo.findOneBy({ email });
