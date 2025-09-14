@@ -62,7 +62,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   setError("");
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       setError("You must be logged in to create a task.");
       return;
@@ -110,7 +110,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
     let isDuplicate = false;
     try {
       const apiBase = process.env.REACT_APP_API_URL || "";
-      const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
       const resDup = await fetch(`${apiBase}/api/tasks`, {
         headers: { Authorization: `Bearer ${token}` }
       });

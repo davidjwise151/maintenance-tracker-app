@@ -28,7 +28,7 @@ const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) =
   const handleAssign = () => {
     if (!selectedUser) return;
     setLoading(true);
-    const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
     const apiBase = process.env.REACT_APP_API_URL || "";
     fetch(`${apiBase}/api/tasks/${taskId}/assign`, {
       method: "PUT",
@@ -111,7 +111,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   const toastManager = useContext(ToastManagerContext);
   const handleDelete = async (taskId: string) => {
     if (!window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
-    const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
     const apiBase = process.env.REACT_APP_API_URL || "";
     try {
       const res = await fetch(`${apiBase}/api/tasks/${taskId}`, {
@@ -190,7 +190,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
     params.append("page", String(page));
     params.append("pageSize", String(pageSize));
 
-    const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
     const apiBase = process.env.REACT_APP_API_URL || "";
   fetch(`${apiBase}/api/tasks?${params.toString()}`, {
       headers: {
@@ -436,7 +436,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                     {task.assignee && task.status === "Pending" && (
                       <button
                         onClick={() => {
-                          const token = localStorage.getItem("token");
+                          const token = sessionStorage.getItem("token");
                           const apiBase = process.env.REACT_APP_API_URL || "";
                           fetch(`${apiBase}/api/tasks/${task.id}/accept`, {
                             method: "PUT",

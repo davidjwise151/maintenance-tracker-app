@@ -38,9 +38,6 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
   }
-  if (!task.user || task.user.id !== userId) {
-    return res.status(403).json({ error: 'Forbidden: Only the owner can assign.' });
-  }
   const assignee = await userRepo.findOneBy({ id: assigneeId });
   if (!assignee) {
     return res.status(400).json({ error: 'Assignee not found.' });
