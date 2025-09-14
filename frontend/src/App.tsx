@@ -23,24 +23,41 @@ function App() {
     const token = sessionStorage.getItem("token");
     if (!token) {
       setIsLoggedIn(false);
+      setUserRole("");
       setCheckingToken(false);
       return;
     }
     const apiBase = process.env.REACT_APP_API_URL || "";
-    fetch(`${apiBase}/api/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => {
-        if (res.status === 401 || res.status === 403) {
+    // Validate token and fetch user role
+    Promise.all([
+      fetch(`${apiBase}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${apiBase}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    ])
+      .then(async ([resUsers, resMe]) => {
+        if (resUsers.status === 401 || resUsers.status === 403) {
           sessionStorage.removeItem("token");
           setIsLoggedIn(false);
+          setUserRole("");
         } else {
           setIsLoggedIn(true);
+          if (resMe.ok) {
+            const userData = await resMe.json();
+            setUserRole(userData.role || "");
+            if (userData.role) sessionStorage.setItem("role", userData.role);
+          } else {
+            setUserRole("");
+            sessionStorage.removeItem("role");
+          }
         }
       })
       .catch(() => {
         sessionStorage.removeItem("token");
         setIsLoggedIn(false);
+        setUserRole("");
       })
       .finally(() => setCheckingToken(false));
   }, []);

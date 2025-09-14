@@ -46,13 +46,18 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
   // Assignee selection
   const [users, setUsers] = useState<Array<{ id: string; email: string }>>([]);
   const [assigneeId, setAssigneeId] = useState("");
-  // Fetch users for assignee dropdown
+  // Fetch users for assignee dropdown (admin only)
   useEffect(() => {
+    if (userRole !== "admin") return;
     const apiBase = process.env.REACT_APP_API_URL || "";
-    fetch(`${apiBase}/api/users`)
-      .then(res => res.json())
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+    fetch(`${apiBase}/api/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.ok ? res.json() : Promise.resolve({ users: [] }))
       .then(data => setUsers(data.users || []));
-  }, []);
+  }, [userRole]);
   const [error, setError] = useState("");
   const toastManager = useContext(ToastManagerContext);
 
@@ -159,80 +164,127 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
   };
 
   return (
-  <form onSubmit={handleSubmit} className="modern-form modern-form-horizontal modern-form-contrast">
-    <h3 className="form-title">Create New Task</h3>
-    <div className="form-row-horizontal">
-      <label htmlFor="title-input" className="form-label form-label-bold">Title</label>
-      <input
-        id="title-input"
-        type="text"
-        className="form-input"
-        placeholder="Task Title"
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        required
-      />
+  <div style={{
+    margin: "2em 0",
+    padding: "2em",
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+    maxWidth: 600,
+    marginLeft: "auto",
+    marginRight: "auto"
+  }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.2em" }}>
+      <svg width="36" height="36" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 12 }}>
+        <circle cx="22" cy="22" r="20" fill="#2980b9" />
+        <path d="M14 28c0-6 8-6 8-12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="22" cy="16" r="2.5" fill="#fff" />
+      </svg>
+      <h2 style={{
+        fontFamily: 'SF Pro Display, Helvetica Neue, Arial, sans-serif',
+        fontWeight: 700,
+        fontSize: '2rem',
+        color: '#222',
+        letterSpacing: '-0.02em',
+        textAlign: 'center',
+        textShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        margin: 0
+      }}>Create New Task</h2>
     </div>
-    <div className="form-row-horizontal">
-      <label htmlFor="due-date-input" className="form-label form-label-bold">Due Date</label>
-      <DatePicker
-        id="due-date-input"
-        selected={dueDate ? parseDateInput(dueDate) : null}
-        onChange={(date: Date | null) => setDueDate(date ? formatDateMMDDYYYY(date) : "")}
-        dateFormat="MM/dd/yyyy"
-        placeholderText="MM/DD/YYYY"
-        isClearable
-        className="datepicker-input"
-        minDate={new Date()}
-      />
+    <div style={{ textAlign: "center", color: "#888", fontSize: "1.08rem", marginBottom: "1.2em" }}>
+      <span>
+        Create a new maintenance task and set deadlines. <br />
+      </span>
     </div>
-    <div className="form-row-horizontal">
-      <label htmlFor="category-select" className="form-label form-label-bold">Category</label>
-      <select
-        id="category-select"
-        className="form-input"
-        value={category}
-        onChange={e => setCategory(e.target.value)}
-      >
-        <option value="">Select Category</option>
-        {categories.map(cat => (
-          <option key={cat} value={cat}>{cat}</option>
-        ))}
-      </select>
-    </div>
-    <div className="form-row-horizontal">
-      <label htmlFor="status-select" className="form-label form-label-bold">Status</label>
-      <select
-        id="status-select"
-        className="form-input"
-        value={status}
-        onChange={e => setStatus(e.target.value)}
-        required
-      >
-        <option value="">Select Status</option>
-        <option value="Pending">Pending</option>
-        <option value="In-Progress">In-Progress</option>
-        <option value="Done">Done</option>
-      </select>
-    </div>
-    {userRole === "admin" && (
-      <div className="form-row-horizontal">
-        <label htmlFor="assignee-select" className="form-label form-label-bold">Assignee (optional)</label>
+    <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+      <div style={{ marginBottom: "1.2em" }}>
+        <label htmlFor="title-input" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Title</label>
+        <input
+          id="title-input"
+          type="text"
+          style={{ fontSize: "1.08rem", padding: "0.6em 1em", borderRadius: 8, border: "1px solid #e0e0e0", width: "100%", background: "#f5f5f7" }}
+          placeholder="Task Title"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          required
+        />
+      </div>
+      <div style={{ marginBottom: "1.2em" }}>
+        <label htmlFor="due-date-input" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Due Date</label>
+        <div style={{ width: "100%" }}>
+          <DatePicker
+            id="due-date-input"
+            selected={dueDate ? parseDateInput(dueDate) : null}
+            onChange={(date: Date | null) => setDueDate(date ? formatDateMMDDYYYY(date) : "")}
+            dateFormat="MM/dd/yyyy"
+            placeholderText="MM/DD/YYYY"
+            isClearable
+            className="custom-datepicker-input"
+            minDate={new Date()}
+          />
+        </div>
+      </div>
+      <div style={{ marginBottom: "1.2em" }}>
+        <label htmlFor="category-select" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Category</label>
         <select
-          id="assignee-select"
-          className="form-input"
-          value={assigneeId}
-          onChange={e => setAssigneeId(e.target.value)}
+          id="category-select"
+          style={{ fontSize: "1.08rem", padding: "0.6em 1em", borderRadius: 8, border: "1px solid #e0e0e0", width: "100%", background: "#f5f5f7" }}
+          value={category}
+          onChange={e => setCategory(e.target.value)}
         >
-          <option value="">Select Assignee</option>
-          {users.map(u => (
-            <option key={u.id} value={u.id}>{u.email}</option>
+          <option value="">Select Category</option>
+          {categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
       </div>
-    )}
-    <button type="submit" className="form-button">Create Task</button>
-  </form>
+      <div style={{ marginBottom: "1.2em" }}>
+        <label htmlFor="status-select" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Status</label>
+        <select
+          id="status-select"
+          style={{ fontSize: "1.08rem", padding: "0.6em 1em", borderRadius: 8, border: "1px solid #e0e0e0", width: "100%", background: "#f5f5f7" }}
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+          required
+        >
+          <option value="">Select Status</option>
+          <option value="Pending">Pending</option>
+          <option value="In-Progress">In-Progress</option>
+          <option value="Done">Done</option>
+        </select>
+      </div>
+      {userRole === "admin" && (
+        <div style={{ marginBottom: "1.2em" }}>
+          <label htmlFor="assignee-select" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Assignee (optional)</label>
+          <select
+            id="assignee-select"
+            style={{ fontSize: "1.08rem", padding: "0.6em 1em", borderRadius: 8, border: "1px solid #e0e0e0", width: "100%", background: "#f5f5f7" }}
+            value={assigneeId}
+            onChange={e => setAssigneeId(e.target.value)}
+          >
+            <option value="">Select Assignee</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.email}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      <button type="submit" style={{
+        background: "#2980b9",
+        color: "#fff",
+        border: "none",
+        borderRadius: 8,
+        padding: "0.7em 2em",
+        fontWeight: 700,
+        fontSize: "1.08rem",
+        cursor: "pointer",
+        boxShadow: "0 2px 8px rgba(41,128,185,0.08)",
+        marginTop: "0.5em"
+      }}>
+        <span style={{ marginRight: 6, fontSize: "1.2em" }}>➕</span>Create Task
+      </button>
+    </form>
+  </div>
   );
 };
 
