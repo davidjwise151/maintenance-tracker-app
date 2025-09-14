@@ -8,6 +8,85 @@ import { LessThan, MoreThan, Between, IsNull } from "typeorm";
 
 const router = Router();
 
+/**
+ * PUT /api/tasks/:id/assign
+ * Assigns a user to a task (or changes assignee).
+ * Request Body: { assigneeId: string }
+ * Only the owner can assign/change assignee.
+ */
+router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { assigneeId } = req.body;
+  const jwtUser = (req as any).user;
+  const userId = jwtUser && jwtUser.id;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
+  }
+  const taskRepo = AppDataSource.getRepository(Task);
+  const userRepo = AppDataSource.getRepository(User);
+  const task = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+  if (!task.user || task.user.id !== userId) {
+    return res.status(403).json({ error: 'Forbidden: Only the owner can assign.' });
+  }
+  const assignee = await userRepo.findOneBy({ id: assigneeId });
+  if (!assignee) {
+    return res.status(400).json({ error: 'Assignee not found.' });
+  }
+  task.assignee = assignee;
+  task.status = 'Pending';
+  await taskRepo.save(task);
+  res.json({
+    id: task.id,
+    title: task.title,
+    category: task.category,
+    status: task.status,
+    dueDate: task.dueDate,
+    completedAt: task.completedAt,
+    user: task.user ? { id: task.user.id, email: task.user.email } : null,
+    assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+  });
+});
+
+/**
+ * PUT /api/tasks/:id/accept
+ * Assignee accepts the task (status: Accepted).
+ * Only the assignee can accept.
+ */
+router.put('/:id/accept', authenticateJWT, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const jwtUser = (req as any).user;
+  const userId = jwtUser && jwtUser.id;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
+  }
+  const taskRepo = AppDataSource.getRepository(Task);
+  const task = await taskRepo.findOne({ where: { id }, relations: ['assignee', 'user'] });
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+  if (!task.assignee || task.assignee.id !== userId) {
+    return res.status(403).json({ error: 'Forbidden: Only the assignee can accept.' });
+  }
+  if (task.status !== 'Pending') {
+    return res.status(400).json({ error: 'Task is not pending.' });
+  }
+  task.status = 'Accepted';
+  await taskRepo.save(task);
+  res.json({
+    id: task.id,
+    title: task.title,
+    category: task.category,
+    status: task.status,
+    dueDate: task.dueDate,
+    completedAt: task.completedAt,
+    user: task.user ? { id: task.user.id, email: task.user.email } : null,
+    assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+  });
+});
+
 // GET /api/tasks/upcoming
 // Returns upcoming (due in next 14 days) and late (past due) tasks for the authenticated user
 router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => {
@@ -82,19 +161,37 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
     return res.status(400).json({ error: "Invalid status value." });
   }
   const taskRepo = AppDataSource.getRepository(Task);
-  const task = await taskRepo.findOneBy({ id });
+  const task = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
   if (!task) {
     return res.status(404).json({ error: "Task not found." });
   }
-  // Automatic Overdue detection
-  const now = Date.now();
-  if (task.dueDate && task.status !== "Done" && now > task.dueDate) {
-    task.status = "Overdue";
-  } else {
-    task.status = status;
+  // Only owner or assignee can update status
+  const jwtUser = (req as any).user;
+  const userId = jwtUser && jwtUser.id;
+  if (!userId || (task.user.id !== userId && (!task.assignee || task.assignee.id !== userId))) {
+    return res.status(403).json({ error: "Forbidden: Only owner or assignee can update status." });
   }
-  // If status is set to Done, update completedAt; otherwise, clear it
-  task.completedAt = status === "Done" ? Date.now() : undefined;
+  // Status workflow enforcement
+  const now = Date.now();
+  if (task.dueDate && status !== "Done" && now > task.dueDate) {
+    task.status = "Overdue";
+  } else if (task.assignee) {
+    // Only assignee can move from Accepted to In-Progress, and In-Progress to Done
+    if (status === "Accepted" && task.status === "Pending" && task.assignee.id === userId) {
+      task.status = "Accepted";
+    } else if (status === "In-Progress" && task.status === "Accepted" && task.assignee.id === userId) {
+      task.status = "In-Progress";
+    } else if (status === "Done" && (task.status === "In-Progress" || task.status === "Accepted") && task.assignee.id === userId) {
+      task.status = "Done";
+      task.completedAt = now;
+    } else {
+      return res.status(400).json({ error: "Invalid status transition or permission." });
+    }
+  } else {
+    // Owner can update status if no assignee
+    task.status = status;
+    task.completedAt = status === "Done" ? now : undefined;
+  }
   await taskRepo.save(task);
   res.json({
     id: task.id,
@@ -103,7 +200,8 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
     dueDate: task.dueDate,
     completedAt: task.completedAt,
     status: task.status,
-    user: task.user,
+    user: task.user ? { id: task.user.id, email: task.user.email } : null,
+    assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
   });
 });
 
@@ -183,7 +281,7 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
  * Returns: The created task object or error
  */
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
-  const { title, category, status, dueDate } = req.body;
+  const { title, category, status, dueDate, assigneeId } = req.body;
 
   // Get userId from JWT payload (added by authenticateJWT middleware)
   const jwtUser = (req as any).user;
@@ -201,19 +299,33 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "User not found." });
   }
 
+  // Find assignee if provided
+  let assignee: User | undefined = undefined;
+  if (assigneeId) {
+    const foundAssignee = await userRepo.findOneBy({ id: assigneeId });
+    if (!foundAssignee) {
+      return res.status(400).json({ error: "Assignee not found." });
+    }
+    assignee = foundAssignee;
+  }
+
   // If status is "Done", set completedAt timestamp
-  const completedAt = status === "Done" ? Date.now() : undefined;
+  let computedStatus = status;
+  if (assignee) {
+    computedStatus = "Pending";
+  }
+  const completedAt = computedStatus === "Done" ? Date.now() : undefined;
 
   // Create new task entity and save to database
   const task = taskRepo.create({
     title,
     category,
-    status,
+    status: computedStatus,
     dueDate,
     completedAt,
     user,
+    assignee,
   });
-  const savedTask = await taskRepo.findOneBy({ id: task.id });
   await taskRepo.save(task);
   res.json({
     id: task.id,
@@ -223,6 +335,7 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     dueDate: task.dueDate,
     completedAt: task.completedAt,
     user: task.user,
+    assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
   });
 });
 

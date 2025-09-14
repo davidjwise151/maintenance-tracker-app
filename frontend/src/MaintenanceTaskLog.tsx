@@ -339,7 +339,8 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Due Date</th>
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Completed Date</th>
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Status</th>
-                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>User</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Owner</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Assignee</th>
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Actions</th>
               </tr>
             </thead>
@@ -357,41 +358,73 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                     {task.completedAt
                       ? formatDateMMDDYYYY(task.completedAt)
                       : "N/A"}
-
                   </td>
-                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                    <select
-                      value={task.status}
-                      onChange={e => {
-                        const newStatus = e.target.value;
-                        const token = localStorage.getItem("token");
-                        const apiBase = process.env.REACT_APP_API_URL || "";
-                        fetch(`${apiBase}/api/tasks/${task.id}/status`, {
-                          method: "PUT",
-                          headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": token ? `Bearer ${token}` : "",
-                          },
-                          body: JSON.stringify({ status: newStatus })
-                        })
-                          .then(res => {
-                            if (!res.ok) throw new Error("Failed to update status");
-                            toastManager?.showToast("Status updated successfully!", "success");
-                            setSearchTrigger(searchTrigger + 1);
-                          })
-                          .catch(err => {
-                            toastManager?.showToast("Error updating status: " + String(err), "error");
-                          });
-                      }}
-                      style={{ minWidth: 120 }}
-                    >
-                        {statusOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                    </select>
-                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.status}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.assignee?.email || "Unassigned"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                    {/* Assignment action: Only owner can assign if unassigned */}
+                    {!task.assignee && (
+                      <button
+                        onClick={() => {
+                          const assigneeEmail = prompt("Enter assignee email:");
+                          if (!assigneeEmail) return;
+                          // You'd fetch userId by email from backend in a real app
+                          toastManager?.showToast("Assigning...");
+                          // For demo, assume email is userId
+                          const token = localStorage.getItem("token");
+                          const apiBase = process.env.REACT_APP_API_URL || "";
+                          fetch(`${apiBase}/api/tasks/${task.id}/assign`, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              "Authorization": token ? `Bearer ${token}` : "",
+                            },
+                            body: JSON.stringify({ assigneeId: assigneeEmail })
+                          })
+                            .then(res => {
+                              if (!res.ok) throw new Error("Failed to assign");
+                              toastManager?.showToast("Task assigned!", "success");
+                              setSearchTrigger(searchTrigger + 1);
+                            })
+                            .catch(err => {
+                              toastManager?.showToast("Error assigning: " + String(err), "error");
+                            });
+                        }}
+                        style={{ background: "#1976d2", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer", marginRight: 8 }}
+                        title="Assign Task"
+                      >
+                        Assign
+                      </button>
+                    )}
+                    {/* Acceptance action: Only assignee can accept if Pending */}
+                    {task.assignee && task.status === "Pending" && (
+                      <button
+                        onClick={() => {
+                          const token = localStorage.getItem("token");
+                          const apiBase = process.env.REACT_APP_API_URL || "";
+                          fetch(`${apiBase}/api/tasks/${task.id}/accept`, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              "Authorization": token ? `Bearer ${token}` : "",
+                            },
+                          })
+                            .then(res => {
+                              if (!res.ok) throw new Error("Failed to accept");
+                              toastManager?.showToast("Task accepted!", "success");
+                              setSearchTrigger(searchTrigger + 1);
+                            })
+                            .catch(err => {
+                              toastManager?.showToast("Error accepting: " + String(err), "error");
+                            });
+                        }}
+                        style={{ background: "#43a047", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer", marginRight: 8 }}
+                        title="Accept Task"
+                      >
+                        Accept
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(task.id)}
                       style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}

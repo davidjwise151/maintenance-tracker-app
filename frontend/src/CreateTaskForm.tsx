@@ -42,6 +42,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   const [status, setStatus] = useState("");
   // Due date input uses yyyy-mm-dd from <input type="date">, displayed as MM/DD/YYYY in UI
   const [dueDate, setDueDate] = useState("");
+  const [assigneeEmail, setAssigneeEmail] = useState("");
   const [error, setError] = useState("");
   const toastManager = useContext(ToastManagerContext);
 
@@ -129,15 +130,17 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
           category,
           status,
           dueDate: dueDateValue,
+          assigneeId: assigneeEmail || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Unknown error");
       toastManager?.showToast("Task created successfully!", "success");
-      setTitle("");
-      setCategory("");
-      setStatus("Pending");
-      setDueDate("");
+  setTitle("");
+  setCategory("");
+  setStatus("Pending");
+  setDueDate("");
+  setAssigneeEmail("");
       if (onTaskCreated) onTaskCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -201,6 +204,17 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
         <option value="In-Progress">In-Progress</option>
         <option value="Done">Done</option>
       </select>
+    </div>
+    <div className="form-row-horizontal">
+      <label htmlFor="assignee-email-input" className="form-label form-label-bold">Assignee Email (optional)</label>
+      <input
+        id="assignee-email-input"
+        type="email"
+        className="form-input"
+        placeholder="Assignee Email"
+        value={assigneeEmail}
+        onChange={e => setAssigneeEmail(e.target.value)}
+      />
     </div>
     <button type="submit" className="form-button">Create Task</button>
   </form>

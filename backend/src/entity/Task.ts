@@ -51,4 +51,11 @@ export class Task {
    */
   @ManyToOne(() => User, (user) => user.tasks)
   user!: User;
+
+  /**
+   * Reference to the user assigned to this task (assignee).
+   * Establishes a many-to-one relationship with the User entity.
+   */
+  @ManyToOne(() => User, { nullable: true })
+  assignee?: User;
 }
