@@ -82,9 +82,10 @@ const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) =
  */
 interface MaintenanceTaskLogProps {
   refreshReminders?: () => void;
+  userRole?: string;
 }
 
-const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminders }) => {
+const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminders, userRole }) => {
   // Helper functions for 5-year date limits
   function fiveYearsAgo() {
     const d = new Date();
@@ -111,7 +112,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   const toastManager = useContext(ToastManagerContext);
   const handleDelete = async (taskId: string) => {
     if (!window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
-  const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const apiBase = process.env.REACT_APP_API_URL || "";
     try {
       const res = await fetch(`${apiBase}/api/tasks/${taskId}`, {
@@ -121,6 +122,10 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
         },
       });
       const data = await res.json();
+      if (res.status === 403) {
+        toastManager?.showToast("You do not have permission to delete this task.", "error");
+        return;
+      }
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
       toastManager?.showToast("Task deleted successfully!", "success");
       // Remove deleted task from UI
@@ -232,7 +237,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   return (
     <div className="task-log-container task-log-contrast">
       {/* CreateTaskForm: triggers refresh on new task creation */}
-  <CreateTaskForm onTaskCreated={() => { refreshTasks(); if (refreshReminders) refreshReminders(); }} />
+  <CreateTaskForm onTaskCreated={() => { refreshTasks(); if (refreshReminders) refreshReminders(); }} userRole={userRole} />
       <h3 className="task-log-title">Maintenance Task Log</h3>
       {/* Results counter */}
       <div style={{ marginBottom: "0.5em", fontWeight: "bold", fontSize: "1.08em" }}>
@@ -428,8 +433,8 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.assignee?.email || "Unassigned"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                    {/* Assignment action: Only owner can assign if unassigned */}
-                    {!task.assignee && (
+                    {/* Assignment action: Only admin can assign if unassigned */}
+                    {!task.assignee && userRole === "admin" && (
                         <AssignDropdown taskId={task.id} onAssigned={() => setSearchTrigger(searchTrigger + 1)} />
                     )}
                     {/* Acceptance action: Only assignee can accept if Pending */}
@@ -460,13 +465,16 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                         Accept
                       </button>
                     )}
-                    <button
-                      onClick={() => handleDelete(task.id)}
-                      style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
-                      title="Delete Task"
-                    >
-                      Delete
-                    </button>
+                    {/* Only admin can delete any task */}
+                    {userRole === "admin" && (
+                      <button
+                        onClick={() => handleDelete(task.id)}
+                        style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
+                        title="Delete Task"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -14,6 +14,11 @@ if (!JWT_SECRET) {
  * - Attaches decoded user info to request
  * - Responds with 401 if no token, 403 if token is invalid
  */
+
+/**
+ * JWT authentication middleware.
+ * Verifies JWT and attaches user info to request.
+ */
 export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.sendStatus(401);
@@ -27,4 +32,19 @@ export function authenticateJWT(req: Request, res: Response, next: NextFunction)
   } catch {
     res.sendStatus(403);
   }
+}
+
+/**
+ * Role-based authorization middleware.
+ * Usage: authorizeRoles('admin', 'manager')
+ * Only allows access if req.user.role matches one of the allowed roles.
+ */
+export function authorizeRoles(...allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as any).user;
+    if (!user || !allowedRoles.includes(user.role)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions.' });
+    }
+    next();
+  };
 }

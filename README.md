@@ -57,6 +57,33 @@ Maintainer is a modern web application built with React, Node.js, and TypeScript
 ---
 
 
+
+## Roles & Permissions
+
+Maintainer supports robust multi-user access with role-based permissions:
+
+- **Roles:**
+   - `admin`: Full access to all features, including user management, task assignment, and deletion.
+   - `user`: Can create, view, and update their own tasks; cannot manage other users or assign/delete tasks unless owner.
+
+- **Permissions:**
+   - Only admins can list all users, change user roles, and assign tasks to any user.
+   - Task owners can assign tasks they own and delete their own tasks.
+   - Only assignees can accept assigned tasks.
+   - All sensitive backend routes are protected by JWT authentication and role checks.
+   - Frontend UI hides admin-only features from regular users and surfaces permission errors via toast notifications.
+
+- **Security Model:**
+   - JWT-based authentication for all API requests.
+   - Passwords securely hashed with bcrypt.
+   - Role-based authorization enforced in backend and reflected in frontend UI.
+   - Audit logging for admin actions (role changes, assignment, deletion) for traceability.
+
+- **Admin Account Seeding:**
+   - The first registered user can be assigned the `admin` role if no admin exists.
+   - Admins can promote/demote users via the User Management UI.
+
+---
 ## Project Structure
 
 **Backend:**

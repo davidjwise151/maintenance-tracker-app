@@ -1,6 +1,6 @@
 
 import { Router, Request, Response } from "express";
-import { authenticateJWT } from "../middleware/auth";
+import { authenticateJWT, authorizeRoles } from "../middleware/auth";
 import { AppDataSource } from "../data-source";
 import { Task } from "../entity/Task";
 import { User } from "../entity/User";
@@ -9,13 +9,14 @@ import { LessThan, MoreThan, Between, IsNull } from "typeorm";
 const router = Router();
 
 /**
- * GET /api/users
- * Returns all users (id, email) for assignment dropdowns.
- */
-router.get('/api/users', async (req: Request, res: Response) => {
+// GET /api/users
+// Returns all users (id, email) for assignment dropdowns.
+// Only admin users can list all users
+router.get('/api/users', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
   const userRepo = AppDataSource.getRepository(User);
   const users = await userRepo.find({ select: ['id', 'email'] });
   res.json({ users });
+});
 });
 
 /**
@@ -24,11 +25,13 @@ router.get('/api/users', async (req: Request, res: Response) => {
  * Request Body: { assigneeId: string }
  * Only the owner can assign/change assignee.
  */
+// Only admin or task owner can assign/change assignee
 router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { assigneeId } = req.body;
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
+  const userRole = jwtUser && jwtUser.role;
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
   }
@@ -38,6 +41,10 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
   }
+  // Only admin or owner can assign
+  if (userRole !== 'admin' && (!task.user || task.user.id !== userId)) {
+    return res.status(403).json({ error: 'Forbidden: Only admin or task owner can assign.' });
+  }
   const assignee = await userRepo.findOneBy({ id: assigneeId });
   if (!assignee) {
     return res.status(400).json({ error: 'Assignee not found.' });
@@ -45,6 +52,9 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   task.assignee = assignee;
   task.status = 'Pending';
   await taskRepo.save(task);
+  // Audit log for admin or owner assignment
+  const actor = jwtUser;
+  console.log(`[AUDIT] ${actor.role === 'admin' ? 'Admin' : 'Owner'} ${actor.email} (${actor.id}) assigned task ${task.title} (${task.id}) to ${assignee.email} (${assignee.id}) at ${new Date().toISOString()}`);
   res.json({
     id: task.id,
     title: task.title,
@@ -132,10 +142,13 @@ router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => 
  * Requires authentication (JWT).
  * Returns: { success: true } or { error: string }
  */
+// Only admin users can delete any task
+// Only admin or task owner can delete
 router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
+  const userRole = jwtUser && jwtUser.role;
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
   }
@@ -144,7 +157,14 @@ router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
   }
+  // Only admin or owner can delete
+  if (userRole !== 'admin' && (!task.user || task.user.id !== userId)) {
+    return res.status(403).json({ error: 'Forbidden: Only admin or task owner can delete.' });
+  }
   await taskRepo.remove(task);
+  // Audit log for admin or owner deletion
+  const actor = jwtUser;
+  console.log(`[AUDIT] ${actor.role === 'admin' ? 'Admin' : 'Owner'} ${actor.email} (${actor.id}) deleted task ${task.title} (${task.id}) at ${new Date().toISOString()}`);
   res.json({ success: true });
 });
 

@@ -3,7 +3,7 @@ import "./styles/modern-form.css";
 
 type Mode = "login" | "register";
 interface AuthFormProps {
-  onLoginSuccess?: () => void;
+  onLoginSuccess?: (userInfo?: { role?: string }) => void;
 }
 /**
  * AuthForm component handles user login and registration.
@@ -56,9 +56,23 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
         return;
       }
       if (res.ok && mode === "login" && data.token) {
-        localStorage.setItem("token", data.token);
+        // Store token in sessionStorage (not localStorage)
+        sessionStorage.setItem("token", data.token);
+        // Fetch user info to get role
+        let userInfo: { role?: string } = {};
+        try {
+          const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000";
+          const resUser = await fetch(`${apiBase}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${data.token}` },
+          });
+          if (resUser.ok) {
+            const userData = await resUser.json();
+            userInfo.role = userData.role;
+            if (userData.role) sessionStorage.setItem("role", userData.role);
+          }
+        } catch {}
         setMessage("Login successful!");
-        if (onLoginSuccess) onLoginSuccess();
+        if (onLoginSuccess) onLoginSuccess(userInfo);
       } else if (res.ok && mode === "register") {
         setMessage("Registration successful! You can now log in.");
         setMode("login");

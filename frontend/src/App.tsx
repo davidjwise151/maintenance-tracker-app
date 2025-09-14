@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { formatDateMMDDYYYY } from "./utils/dateUtils";
 import AuthForm from "./AuthForm";
 import MaintenanceTaskLog from "./MaintenanceTaskLog";
+import UserManagement from "./UserManagement";
 import { ToastManagerProvider } from "./ToastManager";
 
 /**
@@ -22,24 +23,41 @@ function App() {
     const token = sessionStorage.getItem("token");
     if (!token) {
       setIsLoggedIn(false);
+      setUserRole("");
       setCheckingToken(false);
       return;
     }
     const apiBase = process.env.REACT_APP_API_URL || "";
-    fetch(`${apiBase}/api/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => {
-        if (res.status === 401 || res.status === 403) {
+    // Validate token and fetch user role
+    Promise.all([
+      fetch(`${apiBase}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${apiBase}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    ])
+      .then(async ([resUsers, resMe]) => {
+        if (resUsers.status === 401 || resUsers.status === 403) {
           sessionStorage.removeItem("token");
           setIsLoggedIn(false);
+          setUserRole("");
         } else {
           setIsLoggedIn(true);
+          if (resMe.ok) {
+            const userData = await resMe.json();
+            setUserRole(userData.role || "");
+            if (userData.role) sessionStorage.setItem("role", userData.role);
+          } else {
+            setUserRole("");
+            sessionStorage.removeItem("role");
+          }
         }
       })
       .catch(() => {
         sessionStorage.removeItem("token");
         setIsLoggedIn(false);
+        setUserRole("");
       })
       .finally(() => setCheckingToken(false));
   }, []);
@@ -112,8 +130,34 @@ function App() {
   /**
    * Called when AuthForm login succeeds
    */
-  const handleLoginSuccess = useCallback(() => {
+  // Track user role for role-based UI
+  const [userRole, setUserRole] = useState<string>("");
+  const handleLoginSuccess = useCallback((userInfo?: { role?: string }) => {
     setIsLoggedIn(true);
+    if (userInfo && userInfo.role) {
+      setUserRole(userInfo.role);
+      sessionStorage.setItem("role", userInfo.role);
+    } else {
+      setUserRole("");
+      sessionStorage.removeItem("role");
+    }
+  }, []);
+
+  // Automatically refresh user role after a role change
+  const refreshUserRole = useCallback(async () => {
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    try {
+      const res = await fetch(`${apiBase}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const userData = await res.json();
+        setUserRole(userData.role || "");
+        if (userData.role) sessionStorage.setItem("role", userData.role);
+      }
+    } catch {}
   }, []);
 
   // Reminders fetch logic as a reusable function
@@ -262,7 +306,10 @@ function App() {
                 </div>
               </>
             ) : (
-              <MaintenanceTaskLog refreshReminders={fetchReminders} />
+              <>
+                <MaintenanceTaskLog refreshReminders={fetchReminders} userRole={userRole} />
+                {userRole === "admin" && <UserManagement userRole={userRole} />}
+              </>
             )}
           </main>
         </div>
