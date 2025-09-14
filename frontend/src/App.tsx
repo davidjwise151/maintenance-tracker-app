@@ -112,8 +112,17 @@ function App() {
   /**
    * Called when AuthForm login succeeds
    */
-  const handleLoginSuccess = useCallback(() => {
+  // Track user role for role-based UI
+  const [userRole, setUserRole] = useState<string>("");
+  const handleLoginSuccess = useCallback((userInfo?: { role?: string }) => {
     setIsLoggedIn(true);
+    if (userInfo && userInfo.role) {
+      setUserRole(userInfo.role);
+      sessionStorage.setItem("role", userInfo.role);
+    } else {
+      setUserRole("");
+      sessionStorage.removeItem("role");
+    }
   }, []);
 
   // Reminders fetch logic as a reusable function
@@ -262,7 +271,7 @@ function App() {
                 </div>
               </>
             ) : (
-              <MaintenanceTaskLog refreshReminders={fetchReminders} />
+              <MaintenanceTaskLog refreshReminders={fetchReminders} userRole={userRole} />
             )}
           </main>
         </div>

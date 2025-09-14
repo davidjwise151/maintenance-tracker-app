@@ -25,11 +25,13 @@ router.get('/api/users', authenticateJWT, authorizeRoles('admin'), async (req: R
  * Request Body: { assigneeId: string }
  * Only the owner can assign/change assignee.
  */
+// Only admin or task owner can assign/change assignee
 router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { assigneeId } = req.body;
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
+  const userRole = jwtUser && jwtUser.role;
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
   }
@@ -38,7 +40,11 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   const task = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
-4  }
+  }
+  // Only admin or owner can assign
+  if (userRole !== 'admin' && (!task.user || task.user.id !== userId)) {
+    return res.status(403).json({ error: 'Forbidden: Only admin or task owner can assign.' });
+  }
   const assignee = await userRepo.findOneBy({ id: assigneeId });
   if (!assignee) {
     return res.status(400).json({ error: 'Assignee not found.' });
@@ -134,10 +140,12 @@ router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => 
  * Returns: { success: true } or { error: string }
  */
 // Only admin users can delete any task
-router.delete('/:id', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
+// Only admin or task owner can delete
+router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
+  const userRole = jwtUser && jwtUser.role;
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
   }
@@ -145,6 +153,10 @@ router.delete('/:id', authenticateJWT, authorizeRoles('admin'), async (req: Requ
   const task = await taskRepo.findOne({ where: { id }, relations: ['user'] });
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
+  }
+  // Only admin or owner can delete
+  if (userRole !== 'admin' && (!task.user || task.user.id !== userId)) {
+    return res.status(403).json({ error: 'Forbidden: Only admin or task owner can delete.' });
   }
   await taskRepo.remove(task);
   res.json({ success: true });

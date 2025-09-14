@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { authenticateJWT } from "../middleware/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { body, validationResult } from "express-validator";
@@ -100,3 +101,21 @@ router.post(
 );
 
 export default router;
+
+/**
+ * GET /api/auth/me
+ * Returns current user info (id, email, role) for authenticated users.
+ * Access: Private (JWT required)
+ */
+router.get("/me", authenticateJWT, async (req: Request, res: Response) => {
+  const jwtUser = (req as any).user;
+  if (!jwtUser || !jwtUser.id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const userRepo = AppDataSource.getRepository(User);
+  const user = await userRepo.findOneBy({ id: jwtUser.id });
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  res.json({ id: user.id, email: user.email, role: user.role });
+});

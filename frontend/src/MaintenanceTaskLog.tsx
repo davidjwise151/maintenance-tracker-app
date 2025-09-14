@@ -82,9 +82,10 @@ const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) =
  */
 interface MaintenanceTaskLogProps {
   refreshReminders?: () => void;
+  userRole?: string;
 }
 
-const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminders }) => {
+const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminders, userRole }) => {
   // Helper functions for 5-year date limits
   function fiveYearsAgo() {
     const d = new Date();
@@ -428,8 +429,8 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.assignee?.email || "Unassigned"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                    {/* Assignment action: Only owner can assign if unassigned */}
-                    {!task.assignee && (
+                    {/* Assignment action: Only admin can assign if unassigned */}
+                    {!task.assignee && userRole === "admin" && (
                         <AssignDropdown taskId={task.id} onAssigned={() => setSearchTrigger(searchTrigger + 1)} />
                     )}
                     {/* Acceptance action: Only assignee can accept if Pending */}
@@ -460,13 +461,16 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                         Accept
                       </button>
                     )}
-                    <button
-                      onClick={() => handleDelete(task.id)}
-                      style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
-                      title="Delete Task"
-                    >
-                      Delete
-                    </button>
+                    {/* Only admin can delete any task */}
+                    {userRole === "admin" && (
+                      <button
+                        onClick={() => handleDelete(task.id)}
+                        style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
+                        title="Delete Task"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
