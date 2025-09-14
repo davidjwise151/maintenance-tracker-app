@@ -8,6 +8,71 @@ import "react-datepicker/dist/react-datepicker.css";
 import CreateTaskForm from "./CreateTaskForm";
 import { ToastManagerContext } from "./ToastManager";
 
+// Dropdown for assigning a user to a task
+type AssignDropdownProps = { taskId: string; onAssigned: () => void };
+const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) => {
+  const [users, setUsers] = useState<Array<{ id: string; email: string }>>([]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [loading, setLoading] = useState(false);
+  const toastManager = useContext(ToastManagerContext);
+
+  useEffect(() => {
+    // Fetch all users for assignment dropdown
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    fetch(`${apiBase}/api/users`)
+      .then(res => res.json())
+      .then(data => setUsers(data.users || []));
+  }, []);
+
+  // Assign selected user to the task
+  const handleAssign = () => {
+    if (!selectedUser) return;
+    setLoading(true);
+  const token = sessionStorage.getItem("token");
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    fetch(`${apiBase}/api/tasks/${taskId}/assign`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": token ? `Bearer ${token}` : "",
+      },
+      body: JSON.stringify({ assigneeId: selectedUser })
+    })
+      .then(res => {
+        setLoading(false);
+        if (!res.ok) throw new Error("Failed to assign");
+        toastManager?.showToast("Task assigned!", "success");
+        onAssigned();
+      })
+      .catch(err => {
+        setLoading(false);
+        toastManager?.showToast("Error assigning: " + String(err), "error");
+      });
+  };
+
+  return (
+    <span>
+      <select
+        value={selectedUser}
+        onChange={e => setSelectedUser(e.target.value)}
+        style={{ minWidth: 160, marginRight: 8 }}
+      >
+        <option value="">Select assignee</option>
+        {users.map(u => (
+          <option key={u.id} value={u.id}>{u.email}</option>
+        ))}
+      </select>
+      <button
+        onClick={handleAssign}
+        disabled={!selectedUser || loading}
+        style={{ background: "#1976d2", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
+        title="Assign Task"
+      >
+        Assign
+      </button>
+    </span>
+  );
+};
 
 /**
  * MaintenanceTaskLog component displays a log/history view of all maintenance tasks.
@@ -46,7 +111,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   const toastManager = useContext(ToastManagerContext);
   const handleDelete = async (taskId: string) => {
     if (!window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
-    const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
     const apiBase = process.env.REACT_APP_API_URL || "";
     try {
       const res = await fetch(`${apiBase}/api/tasks/${taskId}`, {
@@ -94,7 +159,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
    * Fetch completed tasks from backend with filters and pagination.
    * Updates tasks and total count in state.
    */
-  const refreshTasks = () => {
+  const refreshTasks = () => { 
     const params = new URLSearchParams();
     if (category) params.append("category", category);
     if (status) params.append("status", status);
@@ -125,9 +190,9 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
     params.append("page", String(page));
     params.append("pageSize", String(pageSize));
 
-    const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
     const apiBase = process.env.REACT_APP_API_URL || "";
-    fetch(`${apiBase}/api/tasks/completed?${params.toString()}`, {
+  fetch(`${apiBase}/api/tasks?${params.toString()}`, {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
       },
@@ -339,7 +404,8 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Due Date</th>
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Completed Date</th>
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Status</th>
-                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>User</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Owner</th>
+                <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Assignee</th>
                 <th style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>Actions</th>
               </tr>
             </thead>
@@ -357,41 +423,43 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                     {task.completedAt
                       ? formatDateMMDDYYYY(task.completedAt)
                       : "N/A"}
-
                   </td>
-                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                    <select
-                      value={task.status}
-                      onChange={e => {
-                        const newStatus = e.target.value;
-                        const token = localStorage.getItem("token");
-                        const apiBase = process.env.REACT_APP_API_URL || "";
-                        fetch(`${apiBase}/api/tasks/${task.id}/status`, {
-                          method: "PUT",
-                          headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": token ? `Bearer ${token}` : "",
-                          },
-                          body: JSON.stringify({ status: newStatus })
-                        })
-                          .then(res => {
-                            if (!res.ok) throw new Error("Failed to update status");
-                            toastManager?.showToast("Status updated successfully!", "success");
-                            setSearchTrigger(searchTrigger + 1);
-                          })
-                          .catch(err => {
-                            toastManager?.showToast("Error updating status: " + String(err), "error");
-                          });
-                      }}
-                      style={{ minWidth: 120 }}
-                    >
-                        {statusOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                    </select>
-                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.status}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.assignee?.email || "Unassigned"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                    {/* Assignment action: Only owner can assign if unassigned */}
+                    {!task.assignee && (
+                        <AssignDropdown taskId={task.id} onAssigned={() => setSearchTrigger(searchTrigger + 1)} />
+                    )}
+                    {/* Acceptance action: Only assignee can accept if Pending */}
+                    {task.assignee && task.status === "Pending" && (
+                      <button
+                        onClick={() => {
+                          const token = sessionStorage.getItem("token");
+                          const apiBase = process.env.REACT_APP_API_URL || "";
+                          fetch(`${apiBase}/api/tasks/${task.id}/accept`, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              "Authorization": token ? `Bearer ${token}` : "",
+                            },
+                          })
+                            .then(res => {
+                              if (!res.ok) throw new Error("Failed to accept");
+                              toastManager?.showToast("Task accepted!", "success");
+                              setSearchTrigger(searchTrigger + 1);
+                            })
+                            .catch(err => {
+                              toastManager?.showToast("Error accepting: " + String(err), "error");
+                            });
+                        }}
+                        style={{ background: "#43a047", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer", marginRight: 8 }}
+                        title="Accept Task"
+                      >
+                        Accept
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(task.id)}
                       style={{ background: "#f44336", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}

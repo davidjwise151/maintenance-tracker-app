@@ -1,6 +1,6 @@
 import "./styles/modern-form.css";
 
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { formatDateMMDDYYYY, parseDateInput } from "./utils/dateUtils";
@@ -42,6 +42,16 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   const [status, setStatus] = useState("");
   // Due date input uses yyyy-mm-dd from <input type="date">, displayed as MM/DD/YYYY in UI
   const [dueDate, setDueDate] = useState("");
+  // Assignee selection
+  const [users, setUsers] = useState<Array<{ id: string; email: string }>>([]);
+  const [assigneeId, setAssigneeId] = useState("");
+  // Fetch users for assignee dropdown
+  useEffect(() => {
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    fetch(`${apiBase}/api/users`)
+      .then(res => res.json())
+      .then(data => setUsers(data.users || []));
+  }, []);
   const [error, setError] = useState("");
   const toastManager = useContext(ToastManagerContext);
 
@@ -52,7 +62,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   setError("");
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       setError("You must be logged in to create a task.");
       return;
@@ -100,7 +110,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
     let isDuplicate = false;
     try {
       const apiBase = process.env.REACT_APP_API_URL || "";
-      const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
       const resDup = await fetch(`${apiBase}/api/tasks`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -129,15 +139,17 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
           category,
           status,
           dueDate: dueDateValue,
+          assigneeId: assigneeId || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Unknown error");
       toastManager?.showToast("Task created successfully!", "success");
-      setTitle("");
-      setCategory("");
-      setStatus("Pending");
-      setDueDate("");
+  setTitle("");
+  setCategory("");
+  setStatus("Pending");
+  setDueDate("");
+  setAssigneeId("");
       if (onTaskCreated) onTaskCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -200,6 +212,20 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
         <option value="Pending">Pending</option>
         <option value="In-Progress">In-Progress</option>
         <option value="Done">Done</option>
+      </select>
+    </div>
+    <div className="form-row-horizontal">
+      <label htmlFor="assignee-select" className="form-label form-label-bold">Assignee (optional)</label>
+      <select
+        id="assignee-select"
+        className="form-input"
+        value={assigneeId}
+        onChange={e => setAssigneeId(e.target.value)}
+      >
+        <option value="">Select Assignee</option>
+        {users.map(u => (
+          <option key={u.id} value={u.id}>{u.email}</option>
+        ))}
       </select>
     </div>
     <button type="submit" className="form-button">Create Task</button>

@@ -15,7 +15,34 @@ function App() {
   /**
    * Tracks login status
    */
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingToken, setCheckingToken] = useState(true);
+  // Validate token on app load
+  useEffect(() => {
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      setIsLoggedIn(false);
+      setCheckingToken(false);
+      return;
+    }
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    fetch(`${apiBase}/api/users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => {
+        if (res.status === 401 || res.status === 403) {
+          sessionStorage.removeItem("token");
+          setIsLoggedIn(false);
+        } else {
+          setIsLoggedIn(true);
+        }
+      })
+      .catch(() => {
+        sessionStorage.removeItem("token");
+        setIsLoggedIn(false);
+      })
+      .finally(() => setCheckingToken(false));
+  }, []);
   /**
    * State for displaying the protected route message
    */
@@ -37,7 +64,7 @@ function App() {
    * Removes JWT token and resets state
    */
   const handleSignOut = useCallback(() => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setIsLoggedIn(false);
     setProtectedMsg("");
   }, []);
@@ -49,7 +76,7 @@ function App() {
    * - Displays backend response or error message.
    */
   const fetchProtected = useCallback(async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       setProtectedMsg("Unauthorized: No token found");
       return;
@@ -91,7 +118,7 @@ function App() {
 
   // Reminders fetch logic as a reusable function
   const fetchReminders = useCallback(async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) return;
     setRemindersLoading(true);
     try {
@@ -222,7 +249,9 @@ function App() {
           )}
           <main>
             {/* If not logged in, show authentication form */}
-            {!isLoggedIn ? (
+            {checkingToken ? (
+              <div style={{ textAlign: "center", marginTop: "4em", fontSize: "1.2em", color: "#888" }}>Checking authentication...</div>
+            ) : !isLoggedIn ? (
               <>
                 <AuthForm onLoginSuccess={handleLoginSuccess} />
                 <button onClick={fetchProtected} disabled={loading} style={{ marginTop: 12, minWidth: 160 }}>

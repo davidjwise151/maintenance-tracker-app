@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 5000;
 
 AppDataSource.initialize()
   .then(() => {
+    console.log('Backend using database at path:', process.env.DB_PATH);
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
