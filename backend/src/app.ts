@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from "./routes/auth";
 import tasksRoutes from "./routes/tasks";
+import usersRoutes from "./routes/users";
 import { authenticateJWT } from "./middleware/auth";
 
 /**
@@ -33,6 +34,8 @@ app.use(express.json());
 
 // Mount authentication routes
 app.use("/api/auth", authRoutes);
+// Mount users routes
+app.use("/api/users", usersRoutes);
 
 /**
  * @route   GET /api/protected
