@@ -77,7 +77,8 @@ router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
 router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
-  if (!status || !["Pending", "In-Progress", "Done"].includes(status)) {
+  const allowedStatuses = ["Pending", "Accepted", "In-Progress", "Done", "Overdue"];
+  if (!status || !allowedStatuses.includes(status)) {
     return res.status(400).json({ error: "Invalid status value." });
   }
   const taskRepo = AppDataSource.getRepository(Task);
@@ -85,7 +86,13 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   if (!task) {
     return res.status(404).json({ error: "Task not found." });
   }
-  task.status = status;
+  // Automatic Overdue detection
+  const now = Date.now();
+  if (task.dueDate && task.status !== "Done" && now > task.dueDate) {
+    task.status = "Overdue";
+  } else {
+    task.status = status;
+  }
   // If status is set to Done, update completedAt; otherwise, clear it
   task.completedAt = status === "Done" ? Date.now() : undefined;
   await taskRepo.save(task);

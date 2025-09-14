@@ -70,6 +70,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   const [tasks, setTasks] = useState([]);
   const [category, setCategory] = useState(""); // Filter by category (blank means All)
   const [status, setStatus] = useState(""); // Filter by status (blank means All)
+    const statusOptions = ["Pending", "Accepted", "In-Progress", "Done", "Overdue"];
   const [from, setFrom] = useState(""); // Filter by completed start date
   const [to, setTo] = useState(""); // Filter by completed end date
   const [dueFrom, setDueFrom] = useState(""); // Filter by due date start
@@ -208,9 +209,9 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
           <label className="task-log-label task-log-label-bold">Status</label>
           <select className="task-log-select" value={status} onChange={e => setStatus(e.target.value)}>
             <option value="">All</option>
-            <option value="Pending">Pending</option>
-            <option value="In-Progress">In-Progress</option>
-            <option value="Done">Done</option>
+              {statusOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
           </select>
         </div>
         <div className="task-log-row-horizontal">
@@ -384,9 +385,9 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                       }}
                       style={{ minWidth: 120 }}
                     >
-                      <option value="Pending">Pending</option>
-                      <option value="In-Progress">In-Progress</option>
-                      <option value="Done">Done</option>
+                        {statusOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
                     </select>
                   </td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
