@@ -1,5 +1,6 @@
 # Patch Notes
 
+
 ## v0.2
 
 ### Features
@@ -10,7 +11,15 @@
 	- Dates are shown in MM/DD/YYYY format for consistency.
 - Task status tracking (pending, in-progress, done)
 - Multi-user support
-- Permissions and roles
+- Permissions and roles (see README for full documentation)
+- **Role-Based Access Control:**
+	- Admin and user roles with clear permission boundaries
+	- Backend enforces role checks for all sensitive actions
+	- Frontend UI hides admin-only features and surfaces permission errors
+- **Audit Logging:**
+	- Admin actions (role changes, assignment, deletion) are logged for traceability
+- **Permission Enforcement Tests:**
+	- Automated backend tests verify that permissions are strictly enforced
 
 ### Improvements
 - Refactored all major files for clarity and maintainability
