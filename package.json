@@ -5,10 +5,12 @@
     "concurrently": "^9.2.1"
   },
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm start --prefix frontend\""
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm start --prefix frontend\"",
+    "db-load": "concurrently \"cd backend && npx ts-node src/scripts/seed.ts\""
   },
   "dependencies": {
     "react-scripts": "^5.0.1",
+    "ts-node": "^10.9.2",
     "webpack": "^5.101.3",
     "webpack-dev-server": "^5.2.2"
   },

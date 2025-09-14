@@ -192,7 +192,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
 
     const token = localStorage.getItem("token");
     const apiBase = process.env.REACT_APP_API_URL || "";
-    fetch(`${apiBase}/api/tasks/completed?${params.toString()}`, {
+  fetch(`${apiBase}/api/tasks?${params.toString()}`, {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
       },

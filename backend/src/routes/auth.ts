@@ -47,7 +47,9 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    email = email.toLowerCase();
+    console.log('Registering user in DB:', process.env.DB_PATH, email);
     const userRepo = AppDataSource.getRepository(User);
     // Check for existing user
     const existingUser = await userRepo.findOneBy({ email });
@@ -81,7 +83,9 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    email = email.toLowerCase();
+    console.log('Authenticating user from DB:', process.env.DB_PATH, email);
     const userRepo = AppDataSource.getRepository(User);
     // Find user by email
     const user = await userRepo.findOneBy({ email });

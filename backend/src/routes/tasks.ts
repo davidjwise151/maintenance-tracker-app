@@ -215,21 +215,79 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   });
 });
 
-
 /**
- * GET /api/tasks/completed
- * Returns a paginated list of completed tasks, optionally filtered by category, date range, and status.
+ * GET /api/tasks
+ * Returns all tasks (not just completed) for the authenticated user with filtering and pagination.
  * Query Parameters:
- *   - category: string (optional) — filter by task category
- *   - from: date string (optional) — filter tasks completed after this date
- *   - to: date string (optional) — filter tasks completed before this date
- *   - status: string (optional, default: "Done") — filter by task status
- *   - page: number (optional, default: 1) — page number for pagination
- *   - pageSize: number (optional, default: 20) — number of tasks per page
- *   - sort: "asc" | "desc" (optional, default: "desc") — sort order by completed date
+ *   - category: string (optional) — filter by category
+ *   - status: string (optional) — filter by status
+ *   - from: string (optional) — filter by completed date (timestamp)
+ *   - to: string (optional) — filter by completed date (timestamp)
+ *   - dueFrom: string (optional) — filter by due date (timestamp)
+ *   - dueTo: string (optional) — filter by due date (timestamp)
+ *   - page: number (optional, default: 1) — pagination page
+ *   - pageSize: number (optional, default: 20) — pagination size
+ *   - sort: string (optional, default: "desc") — sort order
  * Requires authentication (JWT).
- * Returns: Paginated, filtered list of completed tasks
+ * Returns: Paginated, filtered list of all tasks
  */
+router.get("/", authenticateJWT, async (req: Request, res: Response) => {
+  // Extract query parameters for filtering and pagination
+  const { category, from, to, status = "", page = 1, pageSize = 20, sort = "desc", dueFrom, dueTo, owner, assignee } = req.query;
+  const taskRepo = AppDataSource.getRepository(Task);
+
+  // Build query for all tasks, joining user and assignee info
+  let query = taskRepo.createQueryBuilder("task")
+    .leftJoinAndSelect("task.user", "user")
+    .leftJoinAndSelect("task.assignee", "assignee");
+
+  // Apply filters
+  if (status && status !== 'All') {
+    query = query.andWhere("task.status = :status", { status });
+  }
+  if (category) query = query.andWhere("task.category = :category", { category });
+  if (from) query = query.andWhere("task.completedAt >= :from", { from });
+  if (to) query = query.andWhere("task.completedAt <= :to", { to });
+  // Due date filtering: only apply if both are valid numbers
+  const dueFromNum = dueFrom && !isNaN(Number(dueFrom)) ? Number(dueFrom) : undefined;
+  const dueToNum = dueTo && !isNaN(Number(dueTo)) ? Number(dueTo) : undefined;
+  if (dueFromNum !== undefined) query = query.andWhere("task.dueDate >= :dueFromNum", { dueFromNum });
+  if (dueToNum !== undefined) query = query.andWhere("task.dueDate <= :dueToNum", { dueToNum });
+  // Owner filter
+  if (owner) query = query.andWhere("user.id = :owner", { owner });
+  // Assignee filter
+  if (assignee) query = query.andWhere("assignee.id = :assignee", { assignee });
+
+  // Sort results by completedAt, then dueDate
+  query = query
+    .orderBy("task.completedAt", sort === "asc" ? "ASC" : "DESC")
+    .addOrderBy("task.dueDate", sort === "asc" ? "ASC" : "DESC");
+
+  // Apply pagination
+  const skip = (Number(page) - 1) * Number(pageSize);
+  query = query.skip(skip).take(Number(pageSize));
+
+  // Execute query and get results
+  const [tasks, total] = await query.getManyAndCount();
+
+  // Respond with filtered, paginated tasks
+  res.json({
+    tasks: tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      category: task.category,
+      status: task.status,
+      dueDate: task.dueDate,
+      completedAt: task.completedAt,
+      user: task.user ? { id: task.user.id, email: task.user.email } : null,
+      assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+    })),
+    total,
+    page: Number(page),
+    pageSize: Number(pageSize)
+  });
+});
+
 router.get("/completed", authenticateJWT, async (req: Request, res: Response) => {
   // Extract query parameters for filtering and pagination
   const { category, from, to, status = "", page = 1, pageSize = 20, sort = "desc", dueFrom, dueTo } = req.query;
