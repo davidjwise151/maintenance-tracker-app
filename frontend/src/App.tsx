@@ -19,7 +19,7 @@ function App() {
   const [checkingToken, setCheckingToken] = useState(true);
   // Validate token on app load
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       setIsLoggedIn(false);
       setCheckingToken(false);
@@ -31,14 +31,14 @@ function App() {
     })
       .then(res => {
         if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("token");
+          sessionStorage.removeItem("token");
           setIsLoggedIn(false);
         } else {
           setIsLoggedIn(true);
         }
       })
       .catch(() => {
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         setIsLoggedIn(false);
       })
       .finally(() => setCheckingToken(false));
@@ -64,7 +64,7 @@ function App() {
    * Removes JWT token and resets state
    */
   const handleSignOut = useCallback(() => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setIsLoggedIn(false);
     setProtectedMsg("");
   }, []);
@@ -76,7 +76,7 @@ function App() {
    * - Displays backend response or error message.
    */
   const fetchProtected = useCallback(async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       setProtectedMsg("Unauthorized: No token found");
       return;
@@ -118,7 +118,7 @@ function App() {
 
   // Reminders fetch logic as a reusable function
   const fetchReminders = useCallback(async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) return;
     setRemindersLoading(true);
     try {
