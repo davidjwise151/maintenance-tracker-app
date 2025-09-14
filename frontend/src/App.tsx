@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { formatDateMMDDYYYY } from "./utils/dateUtils";
 import AuthForm from "./AuthForm";
 import MaintenanceTaskLog from "./MaintenanceTaskLog";
+import UserManagement from "./UserManagement";
 import { ToastManagerProvider } from "./ToastManager";
 
 /**
@@ -271,7 +272,10 @@ function App() {
                 </div>
               </>
             ) : (
-              <MaintenanceTaskLog refreshReminders={fetchReminders} userRole={userRole} />
+              <>
+                <MaintenanceTaskLog refreshReminders={fetchReminders} userRole={userRole} />
+                {userRole === "admin" && <UserManagement userRole={userRole} />}
+              </>
             )}
           </main>
         </div>

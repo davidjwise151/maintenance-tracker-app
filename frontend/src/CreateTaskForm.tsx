@@ -16,6 +16,7 @@ import { ToastManagerContext } from "./ToastManager";
    */
   interface CreateTaskFormProps {
     onTaskCreated?: () => void;
+    userRole?: string;
   }
 
 /**
@@ -24,7 +25,7 @@ import { ToastManagerContext } from "./ToastManager";
  * - Calls backend API to create a task
  * - Shows feedback on success or error
  */
-const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
+const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole }) => {
   // State for form fields and feedback
   const [title, setTitle] = useState("");
   // Use the same category options as MaintenanceTaskLog
@@ -214,20 +215,22 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
         <option value="Done">Done</option>
       </select>
     </div>
-    <div className="form-row-horizontal">
-      <label htmlFor="assignee-select" className="form-label form-label-bold">Assignee (optional)</label>
-      <select
-        id="assignee-select"
-        className="form-input"
-        value={assigneeId}
-        onChange={e => setAssigneeId(e.target.value)}
-      >
-        <option value="">Select Assignee</option>
-        {users.map(u => (
-          <option key={u.id} value={u.id}>{u.email}</option>
-        ))}
-      </select>
-    </div>
+    {userRole === "admin" && (
+      <div className="form-row-horizontal">
+        <label htmlFor="assignee-select" className="form-label form-label-bold">Assignee (optional)</label>
+        <select
+          id="assignee-select"
+          className="form-input"
+          value={assigneeId}
+          onChange={e => setAssigneeId(e.target.value)}
+        >
+          <option value="">Select Assignee</option>
+          {users.map(u => (
+            <option key={u.id} value={u.id}>{u.email}</option>
+          ))}
+        </select>
+      </div>
+    )}
     <button type="submit" className="form-button">Create Task</button>
   </form>
   );

@@ -35,6 +35,7 @@ router.post(
   [
     body("email").isEmail().withMessage("Valid email required"),
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+    body("role").optional().isString().isIn(["admin", "user"]).withMessage("Role must be 'admin' or 'user'"),
   ],
   async (req: Request, res: Response) => {
     // Validate request body
@@ -42,7 +43,7 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    let { email, password } = req.body;
+    let { email, password, role } = req.body;
     email = email.toLowerCase();
     const userRepo = AppDataSource.getRepository(User);
     // Check for existing user
@@ -50,10 +51,18 @@ router.post(
     if (existingUser) {
       return res.status(400).json({ error: "User already exists" });
     }
+    // Only allow 'admin' role if no admin exists yet
+    let assignedRole = "user";
+    if (role === "admin") {
+      const adminExists = await userRepo.findOneBy({ role: "admin" });
+      if (!adminExists) {
+        assignedRole = "admin";
+      }
+    }
     // Hash password and save user
     const hashed = await bcrypt.hash(password, 10);
-    const newUser = await userRepo.save({ email, password: hashed });
-    res.json({ message: "Registered", email: newUser.email, id: newUser.id });
+    const newUser = await userRepo.save({ email, password: hashed, role: assignedRole });
+    res.json({ message: "Registered", email: newUser.email, id: newUser.id, role: newUser.role });
   }
 );
 
