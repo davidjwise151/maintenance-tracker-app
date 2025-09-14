@@ -21,11 +21,19 @@ export class User {
   @Column({ unique: true })
   email!: string;
 
+
   /**
    * Hashed password for authentication.
    */
   @Column()
   password!: string;
+
+  /**
+   * Role of the user (e.g., 'admin', 'manager', 'user').
+   * Used for permission checks and access control.
+   */
+  @Column({ default: 'user' })
+  role!: string;
 
   /**
    * List of tasks associated with this user.
