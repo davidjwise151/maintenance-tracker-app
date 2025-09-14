@@ -23,12 +23,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
+    // Debug log for form values and mode
+    console.log("AuthForm submit", { mode, email, password });
     // Basic client-side validation
     if (!/^\S+@\S+\.\S+$/.test(email)) {
+      console.log("Email failed regex validation", email);
       setMessage("Please enter a valid email address.");
       return;
     }
     if (password.length < 6) {
+      console.log("Password too short", password);
       setMessage("Password must be at least 6 characters.");
       return;
     }
@@ -58,15 +62,21 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
       } else if (res.ok && mode === "register") {
         setMessage("Registration successful! You can now log in.");
         setMode("login");
+        setPassword("");
       } else {
-        setMessage(data.error || "Error");
+        // Handle validation errors array from backend
+        if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+          setMessage(data.errors[0].msg || "Error");
+        } else {
+          setMessage(data.error || "Error");
+        }
       }
     } catch (err) {
       setMessage("Network error: Unable to reach server.");
     } finally {
       setLoading(false);
     }
-    }, [mode]);
+  }, [mode, email, password]);
   
     const handleModeSwitch = useCallback(() => {
     setMode(mode === "login" ? "register" : "login");
