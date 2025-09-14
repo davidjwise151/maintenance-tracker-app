@@ -8,6 +8,71 @@ import "react-datepicker/dist/react-datepicker.css";
 import CreateTaskForm from "./CreateTaskForm";
 import { ToastManagerContext } from "./ToastManager";
 
+// Dropdown for assigning a user to a task
+type AssignDropdownProps = { taskId: string; onAssigned: () => void };
+const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) => {
+  const [users, setUsers] = useState<Array<{ id: string; email: string }>>([]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [loading, setLoading] = useState(false);
+  const toastManager = useContext(ToastManagerContext);
+
+  useEffect(() => {
+    // Fetch all users for assignment dropdown
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    fetch(`${apiBase}/api/users`)
+      .then(res => res.json())
+      .then(data => setUsers(data.users || []));
+  }, []);
+
+  // Assign selected user to the task
+  const handleAssign = () => {
+    if (!selectedUser) return;
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    fetch(`${apiBase}/api/tasks/${taskId}/assign`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": token ? `Bearer ${token}` : "",
+      },
+      body: JSON.stringify({ assigneeId: selectedUser })
+    })
+      .then(res => {
+        setLoading(false);
+        if (!res.ok) throw new Error("Failed to assign");
+        toastManager?.showToast("Task assigned!", "success");
+        onAssigned();
+      })
+      .catch(err => {
+        setLoading(false);
+        toastManager?.showToast("Error assigning: " + String(err), "error");
+      });
+  };
+
+  return (
+    <span>
+      <select
+        value={selectedUser}
+        onChange={e => setSelectedUser(e.target.value)}
+        style={{ minWidth: 160, marginRight: 8 }}
+      >
+        <option value="">Select assignee</option>
+        {users.map(u => (
+          <option key={u.id} value={u.id}>{u.email}</option>
+        ))}
+      </select>
+      <button
+        onClick={handleAssign}
+        disabled={!selectedUser || loading}
+        style={{ background: "#1976d2", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer" }}
+        title="Assign Task"
+      >
+        Assign
+      </button>
+    </span>
+  );
+};
 
 /**
  * MaintenanceTaskLog component displays a log/history view of all maintenance tasks.
@@ -94,7 +159,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
    * Fetch completed tasks from backend with filters and pagination.
    * Updates tasks and total count in state.
    */
-  const refreshTasks = () => {
+  const refreshTasks = () => { 
     const params = new URLSearchParams();
     if (category) params.append("category", category);
     if (status) params.append("status", status);
@@ -365,37 +430,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
                     {/* Assignment action: Only owner can assign if unassigned */}
                     {!task.assignee && (
-                      <button
-                        onClick={() => {
-                          const assigneeEmail = prompt("Enter assignee email:");
-                          if (!assigneeEmail) return;
-                          // You'd fetch userId by email from backend in a real app
-                          toastManager?.showToast("Assigning...");
-                          // For demo, assume email is userId
-                          const token = localStorage.getItem("token");
-                          const apiBase = process.env.REACT_APP_API_URL || "";
-                          fetch(`${apiBase}/api/tasks/${task.id}/assign`, {
-                            method: "PUT",
-                            headers: {
-                              "Content-Type": "application/json",
-                              "Authorization": token ? `Bearer ${token}` : "",
-                            },
-                            body: JSON.stringify({ assigneeId: assigneeEmail })
-                          })
-                            .then(res => {
-                              if (!res.ok) throw new Error("Failed to assign");
-                              toastManager?.showToast("Task assigned!", "success");
-                              setSearchTrigger(searchTrigger + 1);
-                            })
-                            .catch(err => {
-                              toastManager?.showToast("Error assigning: " + String(err), "error");
-                            });
-                        }}
-                        style={{ background: "#1976d2", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer", marginRight: 8 }}
-                        title="Assign Task"
-                      >
-                        Assign
-                      </button>
+                        <AssignDropdown taskId={task.id} onAssigned={() => setSearchTrigger(searchTrigger + 1)} />
                     )}
                     {/* Acceptance action: Only assignee can accept if Pending */}
                     {task.assignee && task.status === "Pending" && (

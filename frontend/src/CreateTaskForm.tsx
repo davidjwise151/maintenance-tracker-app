@@ -1,6 +1,6 @@
 import "./styles/modern-form.css";
 
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { formatDateMMDDYYYY, parseDateInput } from "./utils/dateUtils";
@@ -42,7 +42,16 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   const [status, setStatus] = useState("");
   // Due date input uses yyyy-mm-dd from <input type="date">, displayed as MM/DD/YYYY in UI
   const [dueDate, setDueDate] = useState("");
-  const [assigneeEmail, setAssigneeEmail] = useState("");
+  // Assignee selection
+  const [users, setUsers] = useState<Array<{ id: string; email: string }>>([]);
+  const [assigneeId, setAssigneeId] = useState("");
+  // Fetch users for assignee dropdown
+  useEffect(() => {
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    fetch(`${apiBase}/api/users`)
+      .then(res => res.json())
+      .then(data => setUsers(data.users || []));
+  }, []);
   const [error, setError] = useState("");
   const toastManager = useContext(ToastManagerContext);
 
@@ -130,7 +139,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
           category,
           status,
           dueDate: dueDateValue,
-          assigneeId: assigneeEmail || undefined,
+          assigneeId: assigneeId || undefined,
         }),
       });
       const data = await res.json();
@@ -140,7 +149,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
   setCategory("");
   setStatus("Pending");
   setDueDate("");
-  setAssigneeEmail("");
+  setAssigneeId("");
       if (onTaskCreated) onTaskCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -206,15 +215,18 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated }) => {
       </select>
     </div>
     <div className="form-row-horizontal">
-      <label htmlFor="assignee-email-input" className="form-label form-label-bold">Assignee Email (optional)</label>
-      <input
-        id="assignee-email-input"
-        type="email"
+      <label htmlFor="assignee-select" className="form-label form-label-bold">Assignee (optional)</label>
+      <select
+        id="assignee-select"
         className="form-input"
-        placeholder="Assignee Email"
-        value={assigneeEmail}
-        onChange={e => setAssigneeEmail(e.target.value)}
-      />
+        value={assigneeId}
+        onChange={e => setAssigneeId(e.target.value)}
+      >
+        <option value="">Select Assignee</option>
+        {users.map(u => (
+          <option key={u.id} value={u.id}>{u.email}</option>
+        ))}
+      </select>
     </div>
     <button type="submit" className="form-button">Create Task</button>
   </form>

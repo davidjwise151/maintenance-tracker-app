@@ -9,6 +9,16 @@ import { LessThan, MoreThan, Between, IsNull } from "typeorm";
 const router = Router();
 
 /**
+ * GET /api/users
+ * Returns all users (id, email) for assignment dropdowns.
+ */
+router.get('/api/users', async (req: Request, res: Response) => {
+  const userRepo = AppDataSource.getRepository(User);
+  const users = await userRepo.find({ select: ['id', 'email'] });
+  res.json({ users });
+});
+
+/**
  * PUT /api/tasks/:id/assign
  * Assigns a user to a task (or changes assignee).
  * Request Body: { assigneeId: string }
