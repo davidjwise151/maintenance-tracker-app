@@ -15,14 +15,18 @@ import { authenticateJWT } from "./middleware/auth";
 const app = express();
 
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://maintenance-tracker-app.vercel.app',
-  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/,
-  'https://maintenance-tracker-app.onrender.com', // Render backend
-  'https://maintenance-tracker-app-frontend.vercel.app', // Vercel frontend (if custom domain)
-  'https://maintenance-tracker-app-git-38-f-e0fb38-davidjwise151s-projects.vercel.app', // Current Vercel preview
-];
+// Dynamic CORS origin configuration
+const envAllowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => {
+      if (origin.startsWith('regex:')) {
+        return new RegExp(origin.replace('regex:', ''));
+      }
+      return origin;
+    })
+  : [
+      'http://localhost:3000',
+      /^https:\/\/.*\.vercel\.app$/,
+    ];
 
 
 // Debug: Log all incoming requests and CORS origins
@@ -33,16 +37,13 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    const isAllowed = !origin || allowedOrigins.some(originPattern => typeof originPattern === 'string' ? originPattern === origin : originPattern.test(origin));
+    const isAllowed = !origin || envAllowedOrigins.some(pattern => typeof pattern === 'string' ? pattern === origin : pattern.test(origin));
     if (!isAllowed) {
       console.log(`[DEBUG] CORS rejected origin: ${origin}`);
     } else {
       console.log(`[DEBUG] CORS allowed origin: ${origin}`);
     }
-    // TEMP: Allow all origins for debugging
-    callback(null, true);
-    // To restore strict CORS, use the line below instead:
-    // callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
   credentials: true
 }));

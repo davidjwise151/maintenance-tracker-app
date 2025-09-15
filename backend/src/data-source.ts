@@ -27,10 +27,11 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("sqlite://")
 console.log(`[DEBUG] DATABASE_URL: ${process.env.DATABASE_URL}`);
 console.log(`[DEBUG] Resolved SQLite database path: ${dbConfig}`);
 
+
 export const AppDataSource = new DataSource({
   type: "sqlite",
   database: dbConfig,
-  synchronize: isProd ? false : true, // Always sync in non-prod to auto-create tables
+  synchronize: true, // Always sync to auto-create tables if missing
   logging: process.env.TYPEORM_LOGGING === "true" && !isProd,
   entities: [User, Task],
 });
