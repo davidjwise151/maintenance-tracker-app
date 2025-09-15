@@ -14,17 +14,24 @@ import { authenticateJWT } from "./middleware/auth";
  */
 const app = express();
 
+
 const allowedOrigins = [
   'http://localhost:3000',
   'https://maintenance-tracker-app.vercel.app',
   /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/
 ];
 
-// Enable CORS for allowed origins and credentials
+// Enable CORS for all origins temporarily for debugging
 app.use(cors({
   origin: (origin, callback) => {
-    const isAllowed = !origin || allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin));
-    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    const isAllowed = !origin || allowedOrigins.some(originPattern => typeof originPattern === 'string' ? originPattern === origin : originPattern.test(origin));
+    if (!isAllowed) {
+      console.warn(`CORS rejected origin: ${origin}`);
+    }
+    // TEMP: Allow all origins for debugging
+    callback(null, true);
+    // To restore strict CORS, use the line below instead:
+    // callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
   credentials: true
 }));
