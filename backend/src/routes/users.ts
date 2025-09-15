@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
@@ -13,7 +12,6 @@ router.get("/", authenticateJWT, authorizeRoles("admin"), async (req, res) => {
   const users = await userRepo.find({ select: ["id", "email", "role"] });
   res.json({ users });
 });
-
 
 /**
  * PUT /api/users/:id/role
@@ -38,4 +36,21 @@ router.put("/:id/role", authenticateJWT, authorizeRoles("admin"), async (req, re
   const adminUser = (req as any).user;
   res.json({ success: true, id: user.id, email: user.email, role: user.role });
 });
+
+/**
+ * DELETE /api/users/:id
+ * Allows admin to delete a user by ID
+ * Access: Admin only
+ */
+router.delete('/:id', authenticateJWT, authorizeRoles('admin'), async (req, res) => {
+  const { id } = req.params;
+  const userRepo = AppDataSource.getRepository(User);
+  const user = await userRepo.findOneBy({ id });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+  await userRepo.remove(user);
+  res.json({ success: true, id });
+});
+
 export default router;
