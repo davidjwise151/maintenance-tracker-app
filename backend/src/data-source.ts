@@ -15,13 +15,20 @@ dotenv.config();
  */
 const isProd = process.env.NODE_ENV === "production";
 
+
+import path from "path";
 let dbConfig: string | undefined = undefined;
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("sqlite://")) {
-  dbConfig = process.env.DATABASE_URL.replace("sqlite://", "");
+if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith("sqlite://")) {
+  // Use DATABASE_URL for production (non-sqlite)
+  dbConfig = process.env.DATABASE_URL;
+} else if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("sqlite://")) {
+  // Use sqlite file from DATABASE_URL, relative to backend dir
+  dbConfig = path.resolve(__dirname, "..", process.env.DATABASE_URL.replace("sqlite://", ""));
 } else if (process.env.DB_PATH) {
-  dbConfig = process.env.DB_PATH;
+  dbConfig = path.resolve(__dirname, "..", process.env.DB_PATH);
 } else {
-  dbConfig = "dev.db";
+  // Always use dev.db relative to backend dir
+  dbConfig = path.resolve(__dirname, "..", "dev.db");
 }
 
 
