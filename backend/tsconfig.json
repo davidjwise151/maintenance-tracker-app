@@ -8,6 +8,11 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "lib": ["es2016", "dom"],
+    "lib": ["esnext", "esnext.disposable", "dom"]
   }
+  ,
+  "exclude": [
+    "node_modules",
+    "src/tests"
+  ]
 }
