@@ -14,6 +14,7 @@ dotenv.config();
  * - Logging is disabled by default, can be enabled via env.
  */
 const isProd = process.env.NODE_ENV === "production";
+
 let dbConfig: string | undefined = undefined;
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("sqlite://")) {
   dbConfig = process.env.DATABASE_URL.replace("sqlite://", "");
@@ -23,10 +24,13 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("sqlite://")
   dbConfig = "dev.db";
 }
 
+console.log(`[DEBUG] DATABASE_URL: ${process.env.DATABASE_URL}`);
+console.log(`[DEBUG] Resolved SQLite database path: ${dbConfig}`);
+
 export const AppDataSource = new DataSource({
   type: "sqlite",
   database: dbConfig,
-  synchronize: isProd ? false : process.env.TYPEORM_SYNC === "true" || true,
+  synchronize: isProd ? false : true, // Always sync in non-prod to auto-create tables
   logging: process.env.TYPEORM_LOGGING === "true" && !isProd,
   entities: [User, Task],
 });
