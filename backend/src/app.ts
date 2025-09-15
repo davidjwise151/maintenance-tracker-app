@@ -100,5 +100,19 @@ app.post('/api/dev/seed-admin', async (req, res) => {
     return res.status(500).json({ error: 'Seeding failed.' });
   }
 });
+
+// Dangerous: Deletes all users! Remove after use.
+app.delete('/api/dev/delete-all-users', async (req, res) => {
+  try {
+    const { AppDataSource } = require('./data-source');
+    const { User } = require('./entity/User');
+    await AppDataSource.initialize();
+    await AppDataSource.getRepository(User).clear();
+    await AppDataSource.destroy();
+    res.json({ success: true, message: 'All users deleted.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete users.' });
+  }
+});
 // Export the Express app for use in server startup and testing
 export default app;
