@@ -23,12 +23,20 @@ const allowedOrigins = [
   'https://maintenance-tracker-app-frontend.vercel.app', // Vercel frontend (if custom domain)
 ];
 
-// Enable CORS for all origins temporarily for debugging
+
+// Debug: Log all incoming requests and CORS origins
+app.use((req, res, next) => {
+  console.log(`[DEBUG] Incoming request: ${req.method} ${req.originalUrl} from origin: ${req.headers.origin}`);
+  next();
+});
+
 app.use(cors({
   origin: (origin, callback) => {
     const isAllowed = !origin || allowedOrigins.some(originPattern => typeof originPattern === 'string' ? originPattern === origin : originPattern.test(origin));
     if (!isAllowed) {
-      console.warn(`CORS rejected origin: ${origin}`);
+      console.log(`[DEBUG] CORS rejected origin: ${origin}`);
+    } else {
+      console.log(`[DEBUG] CORS allowed origin: ${origin}`);
     }
     // TEMP: Allow all origins for debugging
     callback(null, true);
