@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './backend/.env' });
 
 
-async function seed() {
+export async function seedDatabase() {
   await AppDataSource.initialize();
   const userRepo = AppDataSource.getRepository(User);
   const taskRepo = AppDataSource.getRepository(Task);
@@ -144,6 +144,11 @@ async function seed() {
   await AppDataSource.destroy();
 }
 
-seed().catch(() => {
-  process.exit(1);
-});
+if (require.main === module) {
+  seedDatabase().then(() => {
+    console.log('Seeding complete');
+    process.exit(0);
+  }).catch(() => {
+    process.exit(1);
+  });
+}
