@@ -1,3 +1,8 @@
+
+// Main Express application setup:
+// - Registers middleware for CORS and JSON parsing
+// - Mounts authentication, user, task, and seed routes
+// - Provides test and protected endpoints
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -5,13 +10,7 @@ import authRoutes from "./routes/auth";
 import tasksRoutes from "./routes/tasks";
 import usersRoutes from "./routes/users";
 import { authenticateJWT } from "./middleware/auth";
-/**
- * Main Express application setup.
- * - Registers middleware for CORS and JSON parsing
- * - Mounts authentication and task routes
- * - Provides test and protected endpoints
 import seedRouter from "./routes/seed";
- */
 const app = express();
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -41,36 +40,21 @@ app.use(cors({
 }));
 // Parse JSON request bodies
 app.use(express.json());
-// Mount authentication routes
 app.use("/api/auth", authRoutes);
-// Mount users routes
 app.use("/api/users", usersRoutes);
-// Mount tasks routes
 app.use("/api/tasks", tasksRoutes);
-
-/**
- * @route   GET /api/protected
- * @desc    Example protected route, requires valid JWT
- * @access  Private
- * Uses custom AuthenticatedRequest type to access user info from JWT.
-// Mount seed route
 app.use("/api/seed", seedRouter);
- */
+// Custom request type for JWT-authenticated routes
 interface AuthenticatedRequest extends express.Request {
   user?: any;
 }
 
-// Protected route example
+// Example protected route, requires valid JWT
 app.get("/api/protected", authenticateJWT, (req: AuthenticatedRequest, res) => {
   res.json({ message: "This is a protected route", user: req.user });
 });
 
-/**
- * @route   GET /api/hello
- * @desc    Simple hello world endpoint
- * @access  Public
- * Used for testing backend connectivity.
- */
+// Simple hello world endpoint for backend connectivity testing
 app.get("/api/hello", (req, res) => {
   res.json({ message: 'Hello from backend!' });
 });
