@@ -10,7 +10,16 @@ async function seed() {
   const userRepo = AppDataSource.getRepository(User);
   const taskRepo = AppDataSource.getRepository(Task);
 
-  // Create 5 users
+
+  // Create test admin user if not present
+  let adminUser = await userRepo.findOneBy({ email: 'david@example.com' });
+  if (!adminUser) {
+    const hashed = await bcrypt.hash('Password!', 10);
+    adminUser = userRepo.create({ email: 'david@example.com', password: hashed, role: 'admin' });
+    await userRepo.save(adminUser);
+  }
+
+  // Create 5 other users
   const usersData = [
     { email: 'alice@example.com', password: 'Password!' },
     { email: 'bob@example.com', password: 'Password!' },
@@ -19,7 +28,7 @@ async function seed() {
     { email: 'eve@example.com', password: 'Password!' },
   ];
 
-  const users: User[] = [];
+  const users: User[] = [adminUser];
   for (const data of usersData) {
     const hashed = await bcrypt.hash(data.password, 10);
     const user = userRepo.create({ email: data.email, password: hashed });
