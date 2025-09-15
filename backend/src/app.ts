@@ -51,7 +51,22 @@ app.use(cors({
     );
     callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-seed-secret'],
+}));
+
+// Explicitly handle preflight OPTIONS requests for all routes
+app.options('*', cors({
+  origin: (origin, callback) => {
+    const isAllowed = !origin || envAllowedOrigins.some(pattern =>
+      typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
+    );
+    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-seed-secret'],
 }));
 // Parse JSON request bodies
 app.use(express.json());
