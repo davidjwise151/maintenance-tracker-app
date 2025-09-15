@@ -15,6 +15,7 @@ const app = express();
 
 const isProd = process.env.NODE_ENV === 'production';
 
+
 const envAllowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => {
       if (origin.startsWith('regex:')) {
@@ -44,30 +45,24 @@ const envAllowedOrigins = process.env.ALLOWED_ORIGINS
         /^https:\/\/.*\.vercel\.app$/,
       ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    const isAllowed = !origin || envAllowedOrigins.some(pattern =>
-      typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
-    );
-    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-seed-secret'],
-}));
+// Manual CORS middleware to guarantee correct headers for all requests
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const isAllowed = !origin || envAllowedOrigins.some(pattern =>
+    typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
+  );
+  if (isAllowed && origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, x-seed-secret');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
-// Explicitly handle preflight OPTIONS requests for all routes
-app.options('*', cors({
-  origin: (origin, callback) => {
-    const isAllowed = !origin || envAllowedOrigins.some(pattern =>
-      typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
-    );
-    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-seed-secret'],
-}));
 // Parse JSON request bodies
 app.use(express.json());
 app.use("/api/auth", authRoutes);
