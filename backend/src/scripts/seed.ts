@@ -1,5 +1,14 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: './backend/.env' });
+/**
+ * To automatically run this seed script on Render backend deployment:
+ *   1. Open backend/package.json
+ *   2. In the "scripts" section, add:
+ *        "postinstall": "npm run build && node dist/scripts/seed.js"
+ *   This will run the seed script after dependencies are installed during deployment.
+ * To run manually:
+ *   npm run build && node dist/scripts/seed.js
+ */
 import { AppDataSource } from '../data-source';
 import { User } from '../entity/User';
 import { Task } from '../entity/Task';
