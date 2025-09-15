@@ -19,6 +19,11 @@ let testTaskId: string;
 
 beforeAll(async () => {
   await AppDataSource.initialize();
+  // Clear all users and tasks for a clean test DB
+  const userRepo = AppDataSource.getRepository(User);
+  const taskRepo = AppDataSource.getRepository(Task);
+  await taskRepo.clear();
+  await userRepo.clear();
   // Create admin and user accounts
   const adminRes = await request(app)
     .post('/api/auth/register')
@@ -45,8 +50,41 @@ beforeAll(async () => {
   testTaskId = taskRes.body.id;
 });
 
+
 afterAll(async () => {
   await AppDataSource.destroy();
+});
+
+describe('Authentication Errors', () => {
+  it('should reject unauthenticated requests to protected endpoints', async () => {
+    const res = await request(app)
+      .get('/api/users');
+    expect(res.status).toBe(401);
+  });
+
+  it('should reject requests with invalid token', async () => {
+    const res = await request(app)
+      .get('/api/users')
+      .set('Authorization', 'Bearer invalidtoken');
+    expect(res.status).toBe(401);
+  });
+
+  it('should reject requests with expired token', async () => {
+    // Create a token that is already expired
+    const jwt = require('jsonwebtoken');
+    const expiredToken = jwt.sign({ email: 'admin@example.com', id: 'fakeid', role: 'admin' }, process.env.JWT_SECRET, { expiresIn: -10 });
+    const res = await request(app)
+      .get('/api/users')
+      .set('Authorization', `Bearer ${expiredToken}`);
+    expect(res.status).toBe(401);
+  });
+
+  it('should reject requests with malformed token', async () => {
+    const res = await request(app)
+      .get('/api/users')
+      .set('Authorization', 'Bearer malformed.token.value');
+    expect(res.status).toBe(401);
+  });
 });
 
 describe('Permissions: Users Route', () => {
