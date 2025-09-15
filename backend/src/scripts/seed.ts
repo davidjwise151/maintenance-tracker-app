@@ -7,8 +7,13 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './backend/.env' });
 
 
+// This file contains the actual seeding logic for users and tasks.
+// It can be run as a script (CLI) or called from the API endpoint.
 export async function seedDatabase() {
-  await AppDataSource.initialize();
+  // Only initialize if not already initialized (for API endpoint usage)
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
   const userRepo = AppDataSource.getRepository(User);
   const taskRepo = AppDataSource.getRepository(Task);
 
@@ -141,7 +146,10 @@ export async function seedDatabase() {
     await taskRepo.save(task);
   }
 
-  await AppDataSource.destroy();
+  // Only destroy if running as a script, not from API
+  if (require.main === module) {
+    await AppDataSource.destroy();
+  }
 }
 
 if (require.main === module) {
