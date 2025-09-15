@@ -49,13 +49,13 @@ export class Task {
    * Reference to the user who owns this task.
    * Establishes a many-to-one relationship with the User entity.
    */
-  @ManyToOne(() => User, (user) => user.tasks)
+  @ManyToOne(() => User, (user) => user.tasks, { onDelete: "CASCADE" })
   user!: User;
 
   /**
    * Reference to the user assigned to this task (assignee).
    * Establishes a many-to-one relationship with the User entity.
    */
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
   assignee?: User;
 }
