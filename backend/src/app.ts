@@ -15,7 +15,9 @@ import { authenticateJWT } from "./middleware/auth";
 const app = express();
 
 
-// Dynamic CORS origin configuration
+
+const isProd = process.env.NODE_ENV === 'production';
+
 const envAllowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => {
       if (origin.startsWith('regex:')) {
@@ -23,25 +25,33 @@ const envAllowedOrigins = process.env.ALLOWED_ORIGINS
       }
       return origin;
     })
-  : [
-      'http://localhost:3000',
-      /^https:\/\/.*\.vercel\.app$/,
-    ];
+  : isProd
+    ? [] // In production, require explicit ALLOWED_ORIGINS
+    : [
+        'http://localhost:3000',
+        /^https:\/\/.*\.vercel\.app$/,
+      ];
 
 
-// Debug: Log all incoming requests and CORS origins
+
 app.use((req, res, next) => {
-  console.log(`[DEBUG] Incoming request: ${req.method} ${req.originalUrl} from origin: ${req.headers.origin}`);
+  if (!isProd) {
+    console.log(`[DEBUG] Incoming request: ${req.method} ${req.originalUrl} from origin: ${req.headers.origin}`);
+  }
   next();
 });
 
 app.use(cors({
   origin: (origin, callback) => {
-    const isAllowed = !origin || envAllowedOrigins.some(pattern => typeof pattern === 'string' ? pattern === origin : pattern.test(origin));
-    if (!isAllowed) {
-      console.log(`[DEBUG] CORS rejected origin: ${origin}`);
-    } else {
-      console.log(`[DEBUG] CORS allowed origin: ${origin}`);
+    const isAllowed = !origin || envAllowedOrigins.some(pattern =>
+      typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
+    );
+    if (!isProd) {
+      if (!isAllowed) {
+        console.log(`[DEBUG] CORS rejected origin: ${origin}`);
+      } else {
+        console.log(`[DEBUG] CORS allowed origin: ${origin}`);
+      }
     }
     callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
