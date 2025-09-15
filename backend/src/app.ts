@@ -97,7 +97,7 @@ app.post('/api/dev/seed-admin', async (req, res) => {
       return res.json({ success: false, message: 'Admin user already exists.' });
     }
   } catch (err) {
-    return res.status(500).json({ error: 'Seeding failed.' });
+    return res.status(500).json({ error: 'Seeding failed.', details: (err as Error)?.message || err });
   }
 });
 
