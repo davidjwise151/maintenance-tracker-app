@@ -6,7 +6,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
-    "postinstall": "node src/scripts/seed.ts"
+  "postinstall": "npm run build && node dist/scripts/seed.js"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
