@@ -18,7 +18,9 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'https://maintenance-tracker-app.vercel.app',
-  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/
+  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/,
+  'https://maintenance-tracker-app.onrender.com', // Render backend
+  'https://maintenance-tracker-app-frontend.vercel.app', // Vercel frontend (if custom domain)
 ];
 
 // Enable CORS for all origins temporarily for debugging
