@@ -8,7 +8,6 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-  "lib": ["esnext", "dom"]
   }
   ,
   "exclude": [
