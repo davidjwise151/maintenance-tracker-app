@@ -10,7 +10,7 @@
     "db-load": "concurrently \"cd backend && npx ts-node src/scripts/seed.ts\""
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
