@@ -21,6 +21,7 @@ const allowedOrigins = [
   /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/,
   'https://maintenance-tracker-app.onrender.com', // Render backend
   'https://maintenance-tracker-app-frontend.vercel.app', // Vercel frontend (if custom domain)
+  'https://maintenance-tracker-app-git-38-f-e0fb38-davidjwise151s-projects.vercel.app', // Current Vercel preview
 ];
 
 
