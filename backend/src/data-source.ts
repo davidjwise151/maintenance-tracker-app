@@ -24,8 +24,6 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("sqlite://")
   dbConfig = "dev.db";
 }
 
-console.log(`[DEBUG] DATABASE_URL: ${process.env.DATABASE_URL}`);
-console.log(`[DEBUG] Resolved SQLite database path: ${dbConfig}`);
 
 
 export const AppDataSource = new DataSource({

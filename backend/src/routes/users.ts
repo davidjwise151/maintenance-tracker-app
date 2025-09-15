@@ -36,7 +36,6 @@ router.put("/:id/role", authenticateJWT, authorizeRoles("admin"), async (req, re
   await userRepo.save(user);
   // Audit log for admin role change
   const adminUser = (req as any).user;
-  console.log(`[AUDIT] Admin ${adminUser.email} (${adminUser.id}) changed role of user ${user.email} (${user.id}) to ${role} at ${new Date().toISOString()}`);
   res.json({ success: true, id: user.id, email: user.email, role: user.role });
 });
 export default router;

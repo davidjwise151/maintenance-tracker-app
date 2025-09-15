@@ -6,7 +6,6 @@ import { Task } from '../entity/Task';
 import bcrypt from 'bcryptjs';
 
 async function seed() {
-  console.log('Seeding database at path:', process.env.DB_PATH);
   await AppDataSource.initialize();
   const userRepo = AppDataSource.getRepository(User);
   const taskRepo = AppDataSource.getRepository(Task);
@@ -129,11 +128,11 @@ async function seed() {
     await taskRepo.save(task);
   }
 
-  console.log('Seed data inserted successfully.');
+  // Logging removed for production
   await AppDataSource.destroy();
 }
 
 seed().catch((err) => {
-  console.error('Error seeding database:', err);
+  // Logging removed for production
   process.exit(1);
 });

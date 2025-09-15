@@ -34,25 +34,15 @@ const envAllowedOrigins = process.env.ALLOWED_ORIGINS
 
 
 
-app.use((req, res, next) => {
-  if (!isProd) {
-    console.log(`[DEBUG] Incoming request: ${req.method} ${req.originalUrl} from origin: ${req.headers.origin}`);
-  }
-  next();
-});
+
+// Removed debug logging middleware
 
 app.use(cors({
   origin: (origin, callback) => {
     const isAllowed = !origin || envAllowedOrigins.some(pattern =>
       typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
     );
-    if (!isProd) {
-      if (!isAllowed) {
-        console.log(`[DEBUG] CORS rejected origin: ${origin}`);
-      } else {
-        console.log(`[DEBUG] CORS allowed origin: ${origin}`);
-      }
-    }
+    // Removed debug CORS logging
     callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
   credentials: true
