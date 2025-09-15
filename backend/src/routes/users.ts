@@ -49,6 +49,10 @@ router.delete('/:id', authenticateJWT, authorizeRoles('admin'), async (req, res)
   if (!user) {
     return res.status(404).json({ error: 'User not found.' });
   }
+  if (user.role === 'admin') {
+    return res.status(403).json({ error: 'Cannot delete admin users.' });
+  }
+  console.log(`Deleting user: id=${user.id}, email=${user.email}, role=${user.role}`);
   await userRepo.remove(user);
   res.json({ success: true, id });
 });
