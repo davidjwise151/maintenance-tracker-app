@@ -7,15 +7,23 @@ let userToken: string;
 let assigneeToken: string;
 let createdTaskId: string;
 
+
 beforeAll(async () => {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
+});
+
+beforeEach(async () => {
+  // Clear all users and tasks for a clean test DB
+  const userRepo = AppDataSource.getRepository(require('../entity/User').User);
+  const taskRepo = AppDataSource.getRepository(require('../entity/Task').Task);
+  await taskRepo.clear();
+  await userRepo.clear();
   // Register and login admin
   await request(app)
     .post('/api/auth/register')
     .send({ email: 'admin3@example.com', password: 'Test1234!', role: 'admin' });
-  const userRepo = AppDataSource.getRepository(require('../entity/User').User);
   const adminUser = await userRepo.findOneBy({ email: 'admin3@example.com' });
   if (adminUser && adminUser.role !== 'admin') {
     adminUser.role = 'admin';

@@ -17,8 +17,14 @@ let adminId: string;
 let userId: string;
 let testTaskId: string;
 
+
 beforeAll(async () => {
-  await AppDataSource.initialize();
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+});
+
+beforeEach(async () => {
   // Clear all users and tasks for a clean test DB
   const userRepo = AppDataSource.getRepository(User);
   const taskRepo = AppDataSource.getRepository(Task);
@@ -52,7 +58,9 @@ beforeAll(async () => {
 
 
 afterAll(async () => {
-  await AppDataSource.destroy();
+  if (AppDataSource.isInitialized) {
+    await AppDataSource.destroy();
+  }
 });
 
 describe('Authentication Errors', () => {
