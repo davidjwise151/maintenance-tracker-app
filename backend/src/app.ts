@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: __dirname + '/../.env' });
 import express, { Request } from 'express';
 import authRoutes from "./routes/auth";
 import tasksRoutes from "./routes/tasks";
