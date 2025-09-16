@@ -4,10 +4,19 @@ import { AppDataSource } from '../data-source';
 
 let userToken: string;
 
+
 beforeAll(async () => {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
+});
+
+beforeEach(async () => {
+  // Clear all users and tasks for a clean test DB
+  const userRepo = AppDataSource.getRepository(require('../entity/User').User);
+  const taskRepo = AppDataSource.getRepository(require('../entity/Task').Task);
+  await taskRepo.clear();
+  await userRepo.clear();
   // Register and login a user to get a token
   await request(app)
     .post('/api/auth/register')
