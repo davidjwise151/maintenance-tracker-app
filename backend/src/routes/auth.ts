@@ -96,12 +96,12 @@ router.post(
     // Find user by email
     const user = await userRepo.findOneBy({ email });
     if (!user) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
     // Compare password
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
   // Issue JWT token with role
   const token = jwt.sign({ email, id: user.id, role: user.role }, JWT_SECRET, { expiresIn: "1h" });

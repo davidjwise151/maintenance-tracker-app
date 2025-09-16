@@ -152,7 +152,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   const [tasks, setTasks] = useState([]);
   const [category, setCategory] = useState(""); // Filter by category (blank means All)
   const [status, setStatus] = useState(""); // Filter by status (blank means All)
-    const statusOptions = ["Pending", "Accepted", "In-Progress", "Done", "Overdue"];
+  const statusOptions = ["Pending", "Accepted", "In-Progress", "Done"];
   const [from, setFrom] = useState(""); // Filter by completed start date
   const [to, setTo] = useState(""); // Filter by completed end date
   const [dueFrom, setDueFrom] = useState(""); // Filter by due date start
@@ -441,7 +441,12 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                       ? formatDateMMDDYYYY(task.completedAt)
                       : "N/A"}
                   </td>
-                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>{task.status}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
+                    {task.status}
+                    {task.isOverdue && task.status !== "Done" && (
+                      <span style={{ color: "#d32f2f", fontWeight: 600, marginLeft: 8 }} title="Overdue">(Overdue)</span>
+                    )}
+                  </td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.assignee?.email || "Unassigned"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>

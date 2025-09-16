@@ -6,9 +6,10 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm start --prefix frontend\"",
-    "test": "jest --runInBand",
-    "seed": "ts-node backend/src/scripts/seed.ts"
+  "dev": "concurrently --raw --kill-others-on-fail --success=first \"npm run dev --prefix backend\" \"npm start --prefix frontend\"",
+  "test": "jest --runInBand",
+  "seed": "ts-node backend/src/scripts/seed.ts",
+  "coverage": "npm run coverage --prefix backend"
   },
   "engines": {
     "node": ">=18.0.0"
