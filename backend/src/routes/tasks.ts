@@ -178,9 +178,9 @@ router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
 router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
-  const allowedStatuses = ["Pending", "Accepted", "In-Progress", "Done", "Overdue"];
+  const allowedStatuses = ["Pending", "Accepted", "In-Progress", "Done"];
   if (!status || !allowedStatuses.includes(status)) {
-    return res.status(400).json({ error: "Invalid status value." });
+    return res.status(400).json({ error: "Invalid status value. Allowed: Pending, Accepted, In-Progress, Done." });
   }
   const taskRepo = AppDataSource.getRepository(Task);
   const task = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
@@ -195,9 +195,7 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   }
   // Status workflow enforcement
   const now = Date.now();
-  if (task.dueDate && status !== "Done" && now > task.dueDate) {
-    task.status = "Overdue";
-  } else if (task.assignee) {
+  if (task.assignee) {
     // Only assignee can move from Accepted to In-Progress, and In-Progress to Done
     if (status === "Accepted" && task.status === "Pending" && task.assignee.id === userId) {
       task.status = "Accepted";
@@ -215,6 +213,11 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
     task.completedAt = status === "Done" ? now : undefined;
   }
   await taskRepo.save(task);
+  // Compute isOverdue
+  let isOverdue = false;
+  if (task.dueDate && ["Pending", "Accepted", "In-Progress"].includes(task.status)) {
+    isOverdue = new Date(task.dueDate).getTime() < Date.now();
+  }
   res.json({
     id: task.id,
     title: task.title,
@@ -224,6 +227,7 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
     status: task.status,
     user: task.user ? { id: task.user.id, email: task.user.email } : null,
     assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+    isOverdue,
   });
 });
 
@@ -284,16 +288,23 @@ router.get("/", authenticateJWT, async (req: Request, res: Response) => {
 
   // Respond with filtered, paginated tasks
   res.json({
-    tasks: tasks.map(task => ({
-      id: task.id,
-      title: task.title,
-      category: task.category,
-      status: task.status,
-      dueDate: task.dueDate,
-      completedAt: task.completedAt,
-      user: task.user ? { id: task.user.id, email: task.user.email } : null,
-      assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
-    })),
+    tasks: tasks.map(task => {
+      let isOverdue = false;
+      if (task.dueDate && ["Pending", "Accepted", "In-Progress"].includes(task.status)) {
+        isOverdue = new Date(task.dueDate).getTime() < Date.now();
+      }
+      return {
+        id: task.id,
+        title: task.title,
+        category: task.category,
+        status: task.status,
+        dueDate: task.dueDate,
+        completedAt: task.completedAt,
+        user: task.user ? { id: task.user.id, email: task.user.email } : null,
+        assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+        isOverdue,
+      };
+    }),
     total,
     page: Number(page),
     pageSize: Number(pageSize)
@@ -362,6 +373,8 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
  */
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   const { title, category, status, dueDate, assigneeId } = req.body;
+  // Allowed status values (workflow only)
+  const allowedStatuses = ["Pending", "Accepted", "In-Progress", "Done"];
 
 
   // Validate required fields
@@ -400,6 +413,10 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   if (assignee) {
     computedStatus = "Pending";
   }
+  // Validate status value
+  if (computedStatus && !allowedStatuses.includes(computedStatus)) {
+    return res.status(400).json({ error: "Invalid status value. Allowed: Pending, Accepted, In-Progress, Done." });
+  }
   const completedAt = computedStatus === "Done" ? Date.now() : undefined;
 
   // Create new task entity and save to database
@@ -413,6 +430,11 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     assignee,
   });
   await taskRepo.save(task);
+  // Compute isOverdue
+  let isOverdue = false;
+  if (task.dueDate && ["Pending", "Accepted", "In-Progress"].includes(task.status)) {
+    isOverdue = new Date(task.dueDate).getTime() < Date.now();
+  }
   res.json({
     id: task.id,
     title: task.title,
@@ -422,6 +444,7 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     completedAt: task.completedAt,
     user: task.user,
     assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+    isOverdue,
   });
 });
 
