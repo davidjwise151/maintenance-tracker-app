@@ -12,16 +12,20 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 
 /**
- * Helper to render a component with mocked tasks (for DRY tests)
+ * General helper to render a component with a mocked fetch response.
+ * @param Component - The React component to render
+ * @param fetchData - The object to return from fetch's .json()
+ * @param fetchKey - The key to wrap fetchData in (default: 'data'), or null for raw object
  */
-export async function renderWithMockedTasks(
+export async function renderWithMockedFetch(
   Component: React.ElementType,
-  tasks: Task[]
+  fetchData: any,
+  fetchKey: string | null = null
 ) {
   global.fetch = jest.fn(() =>
     Promise.resolve({
       ok: true,
-      json: async () => ({ tasks }),
+      json: async () => (fetchKey ? { [fetchKey]: fetchData } : fetchData),
     } as unknown as Response)
   );
   await act(async () => {
