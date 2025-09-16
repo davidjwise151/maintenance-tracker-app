@@ -363,6 +363,12 @@ router.get("/completed", authenticateJWT, async (req: Request, res: Response) =>
 router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   const { title, category, status, dueDate, assigneeId } = req.body;
 
+
+  // Validate required fields
+  if (!title || typeof title !== 'string' || title.trim() === '') {
+    return res.status(400).json({ error: 'Title is required.' });
+  }
+
   // Get userId from JWT payload (added by authenticateJWT middleware)
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
@@ -389,8 +395,8 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     assignee = foundAssignee;
   }
 
-  // If status is "Done", set completedAt timestamp
-  let computedStatus = status;
+  // If status is missing, default to 'Pending'.
+  let computedStatus = status || "Pending";
   if (assignee) {
     computedStatus = "Pending";
   }
