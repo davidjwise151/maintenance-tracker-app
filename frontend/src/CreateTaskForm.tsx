@@ -46,9 +46,8 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
   // Assignee selection
   const [users, setUsers] = useState<Array<{ id: string; email: string }>>([]);
   const [assigneeId, setAssigneeId] = useState("");
-  // Fetch users for assignee dropdown (admin only)
+  // Fetch users for assignee dropdown (all roles)
   useEffect(() => {
-    if (userRole !== "admin") return;
     const apiBase = process.env.REACT_APP_API_URL || "";
     const token = sessionStorage.getItem("token");
     if (!token) return;
@@ -253,22 +252,20 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
           <option value="Done">Done</option>
         </select>
       </div>
-      {userRole === "admin" && (
-        <div style={{ marginBottom: "1.2em" }}>
-          <label htmlFor="assignee-select" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Assignee (optional)</label>
-          <select
-            id="assignee-select"
-            style={{ fontSize: "1.08rem", padding: "0.6em 1em", borderRadius: 8, border: "1px solid #e0e0e0", width: "100%", background: "#f5f5f7" }}
-            value={assigneeId}
-            onChange={e => setAssigneeId(e.target.value)}
-          >
-            <option value="">Select Assignee</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.email}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div style={{ marginBottom: "1.2em" }}>
+        <label htmlFor="assignee-select" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Assignee (optional)</label>
+        <select
+          id="assignee-select"
+          style={{ fontSize: "1.08rem", padding: "0.6em 1em", borderRadius: 8, border: "1px solid #e0e0e0", width: "100%", background: "#f5f5f7" }}
+          value={assigneeId}
+          onChange={e => setAssigneeId(e.target.value)}
+        >
+          <option value="">Select Assignee</option>
+          {users.map(u => (
+            <option key={u.id} value={u.id}>{u.email}</option>
+          ))}
+        </select>
+      </div>
       <button type="submit" style={{
         background: "#2980b9",
         color: "#fff",

@@ -69,6 +69,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
             const userData = await resUser.json();
             userInfo.role = userData.role;
             if (userData.role) sessionStorage.setItem("role", userData.role);
+            if (userData.email) sessionStorage.setItem("userEmail", userData.email);
           }
         } catch {}
         setMessage("Login successful!");

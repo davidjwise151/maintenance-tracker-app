@@ -8,6 +8,14 @@ import "react-datepicker/dist/react-datepicker.css";
 import CreateTaskForm from "./CreateTaskForm";
 import { ToastManagerContext } from "./ToastManager";
 
+// Helper to check if current user is the assignee
+function isCurrentUserAssignee(assignee: any) {
+  // Assumes assignee has an id or email
+  const userEmail = sessionStorage.getItem("userEmail");
+  if (!userEmail) return false;
+  return assignee?.email === userEmail;
+}
+
 // Dropdown for assigning a user to a task
 type AssignDropdownProps = { taskId: string; onAssigned: () => void };
 const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) => {
@@ -17,10 +25,14 @@ const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) =
   const toastManager = useContext(ToastManagerContext);
 
   useEffect(() => {
-    // Fetch all users for assignment dropdown
+    // Fetch all users for assignment dropdown (with auth)
     const apiBase = process.env.REACT_APP_API_URL || "";
-    fetch(`${apiBase}/api/users`)
-      .then(res => res.json())
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+    fetch(`${apiBase}/api/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.ok ? res.json() : Promise.resolve({ users: [] }))
       .then(data => setUsers(data.users || []));
   }, []);
 
@@ -433,14 +445,15 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.user?.email || "N/A"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", wordBreak: "break-word" }}>{task.assignee?.email || "Unassigned"}</td>
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
-                    {/* Assignment action: Only admin can assign if unassigned */}
-                    {!task.assignee && userRole === "admin" && (
-                        <AssignDropdown taskId={task.id} onAssigned={() => setSearchTrigger(searchTrigger + 1)} />
-                    )}
-                    {/* Acceptance action: Only assignee can accept if Pending */}
+          {/* Assignment action: Only admin can assign if unassigned */}
+          {userRole === "admin" && !task.assignee && (
+            <AssignDropdown taskId={task.id} onAssigned={() => setSearchTrigger(searchTrigger + 1)} />
+          )}
+                    {/* Acceptance action: Button always visible if task.assignee and status Pending, but only enabled for assignee */}
                     {task.assignee && task.status === "Pending" && (
                       <button
                         onClick={() => {
+                          if (!isCurrentUserAssignee(task.assignee)) return;
                           const token = sessionStorage.getItem("token");
                           const apiBase = process.env.REACT_APP_API_URL || "";
                           fetch(`${apiBase}/api/tasks/${task.id}/accept`, {
@@ -459,8 +472,18 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                               toastManager?.showToast("Error accepting: " + String(err), "error");
                             });
                         }}
-                        style={{ background: "#43a047", color: "#fff", border: "none", padding: "0.4em 0.8em", borderRadius: 4, cursor: "pointer", marginRight: 8 }}
-                        title="Accept Task"
+                        disabled={!isCurrentUserAssignee(task.assignee)}
+                        style={{
+                          background: isCurrentUserAssignee(task.assignee) ? "#43a047" : "#bdbdbd",
+                          color: "#fff",
+                          border: "none",
+                          padding: "0.4em 0.8em",
+                          borderRadius: 4,
+                          cursor: isCurrentUserAssignee(task.assignee) ? "pointer" : "not-allowed",
+                          marginRight: 8,
+                          opacity: isCurrentUserAssignee(task.assignee) ? 1 : 0.6
+                        }}
+                        title={isCurrentUserAssignee(task.assignee) ? "Accept Task" : "Only the assignee can accept"}
                       >
                         Accept
                       </button>
