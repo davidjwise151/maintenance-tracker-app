@@ -150,6 +150,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
 
   // State for tasks and filter/search controls
   const [tasks, setTasks] = useState([]);
+  const [error, setError] = useState("");
   const [category, setCategory] = useState(""); // Filter by category (blank means All)
   const [status, setStatus] = useState(""); // Filter by status (blank means All)
   const statusOptions = ["Pending", "Accepted", "In-Progress", "Done"];
@@ -221,10 +222,12 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
       .then(data => {
         setTasks(data.tasks || []);
         setTotal(data.total || 0);
+        setError("");
       })
       .catch(err => {
         setTasks([]);
         setTotal(0);
+        setError("Error loading tasks. Please try again later.");
         console.error(err);
       });
   };
@@ -246,6 +249,16 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   /**
    * Renders UI: filter form, results table, pagination, and toast notifications.
    */
+  if (error) {
+    return (
+      <div className="task-log-container task-log-contrast">
+        <div style={{ margin: "2em auto", padding: "2em", background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.08)", maxWidth: 600 }}>
+          <h2 style={{ color: "#c0392b", textAlign: "center" }}>Error</h2>
+          <div style={{ textAlign: "center", color: "#888", fontSize: "1.08rem", marginBottom: "1.2em" }}>{error}</div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="task-log-container task-log-contrast">
       {/* CreateTaskForm: triggers refresh on new task creation */}
