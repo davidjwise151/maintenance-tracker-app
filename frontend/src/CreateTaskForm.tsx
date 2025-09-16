@@ -66,15 +66,24 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  setError("");
+    setError("");
+    // Validate required fields and status value FIRST
+    if (!title) {
+      setError("Title is required");
+      return;
+    }
+    if (!status) {
+      setError("Status is required");
+      return;
+    }
+    const validStatuses = ["Pending", "In-Progress", "Done"];
+    if (!validStatuses.includes(status)) {
+      setError("Invalid status");
+      return;
+    }
     const token = sessionStorage.getItem("token");
     if (!token) {
       setError("You must be logged in to create a task.");
-      return;
-    }
-    // Prevent due date in the past
-    if (!status) {
-      toastManager?.showToast("Please select a status.", "error");
       return;
     }
     if (dueDate) {
@@ -195,6 +204,11 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
         Create a new maintenance task and set deadlines. <br />
       </span>
     </div>
+    {error && (
+      <div role="alert" style={{ color: '#b00020', marginBottom: '1em', fontWeight: 600, fontSize: '1.08rem' }}>
+        {error}
+      </div>
+    )}
     <form onSubmit={handleSubmit} style={{ width: "100%" }}>
       <div style={{ marginBottom: "1.2em" }}>
         <label htmlFor="title-input" style={{ fontWeight: 600, color: "#222", fontSize: "1.08rem", marginBottom: 4, display: "block" }}>Title</label>
@@ -205,7 +219,6 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
           placeholder="Task Title"
           value={title}
           onChange={e => setTitle(e.target.value)}
-          required
         />
       </div>
       <div style={{ marginBottom: "1.2em" }}>
@@ -244,7 +257,6 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onTaskCreated, userRole
           style={{ fontSize: "1.08rem", padding: "0.6em 1em", borderRadius: 8, border: "1px solid #e0e0e0", width: "100%", background: "#f5f5f7" }}
           value={status}
           onChange={e => setStatus(e.target.value)}
-          required
         >
           <option value="">Select Status</option>
           <option value="Pending">Pending</option>
