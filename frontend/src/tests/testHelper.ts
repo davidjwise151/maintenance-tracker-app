@@ -1,15 +1,29 @@
 /**
- * Helper to get the Search button in MaintenanceTaskLog.
+ * --------------------
+ * General Test Helpers
+ * --------------------
  */
-export function getSearchButton() {
-  return screen.getAllByRole('button', { name: /^search$/i })[0];
+
+import React from 'react';
+import { render, act, screen, fireEvent } from '@testing-library/react';
+import MaintenanceTaskLog from '../MaintenanceTaskLog';
+
+/**
+ * Generic helper to fill and submit any form by label/value mapping.
+ */
+export async function fillAndSubmitForm(fields: Record<string, string>, submitButton: string | RegExp) {
+  for (const [label, value] of Object.entries(fields)) {
+    fireEvent.change(screen.getByLabelText(new RegExp(label, 'i')), { target: { value } });
+  }
+  fireEvent.click(screen.getByRole('button', { name: submitButton }));
 }
 
 /**
- * Helper to assert a task is present by title.
+ * Generic helper to assert an element with text is present.
  */
-export function expectTaskPresent(title: string) {
-  expect(screen.getByText(title)).toBeInTheDocument();
+export async function expectElementPresent(text: string | RegExp) {
+  const matches = await screen.findAllByText(text);
+  expect(matches.length).toBeGreaterThan(0);
 }
 
 /**
@@ -20,22 +34,43 @@ export function mockConfirm(value: boolean) {
 }
 
 /**
+ * --------------------
+ * AuthForm Helpers
+ * --------------------
+ */
+
+/**
  * Helper to fill and submit the AuthForm for login/register tests.
  */
 export async function fillAndSubmitAuthForm({ email, password, mode = 'login' }: { email: string; password: string; mode?: 'login' | 'register' }) {
-  // The test should render <AuthForm /> before calling this helper.
-  // Switch mode if needed
   if (mode === 'register') {
-    const switchBtn = screen.getByRole('button', { name: /register/i });
-    fireEvent.click(switchBtn);
+    switchAuthMode('register');
   }
   fireEvent.change(screen.getByLabelText(/email/i), { target: { value: email } });
   fireEvent.change(screen.getByLabelText(/password/i), { target: { value: password } });
   fireEvent.click(screen.getByRole('button', { name: new RegExp(mode, 'i') }));
 }
-import React from 'react';
-import { render, act, screen, fireEvent } from '@testing-library/react';
-import MaintenanceTaskLog from '../MaintenanceTaskLog';
+
+/**
+ * Helper to switch AuthForm mode.
+ */
+export function switchAuthMode(mode: 'login' | 'register') {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(mode, 'i') }));
+}
+
+/**
+ * Helper to assert an error message is present (robust to multiple matches).
+ */
+export async function expectErrorMessage(message: string | RegExp) {
+  const matches = await screen.findAllByText(message);
+  expect(matches.length).toBeGreaterThan(0);
+}
+
+/**
+ * --------------------
+ * MaintenanceTaskLog Helpers
+ * --------------------
+ */
 
 // Helper type for MaintenanceTaskLog tests
 export type Task = {
@@ -64,9 +99,6 @@ export function getMockTask(overrides: Partial<Task> = {}): Task {
 
 /**
  * General helper to render a component with a mocked fetch response.
- * @param Component - The React component to render
- * @param fetchData - The object to return from fetch's .json()
- * @param fetchKey - The key to wrap fetchData in (default: 'data'), or null for raw object
  */
 export async function renderWithMockedFetch(
   Component: React.ElementType,
@@ -101,10 +133,36 @@ export async function renderTaskLogWithError() {
   });
 }
 
+/**
+ * Helper to get the Search button in MaintenanceTaskLog.
+ */
+export function getSearchButton() {
+  return screen.getAllByRole('button', { name: /^search$/i })[0];
+}
 
+/**
+ * Helper to assert a task is present by title.
+ */
+export function expectTaskPresent(title: string) {
+  expect(screen.getByText(title)).toBeInTheDocument();
+}
+
+/**
+ * Helper to change filters in MaintenanceTaskLog.
+ */
+export function setTaskLogFilters({ category, status, assignee }: { category?: string; status?: string; assignee?: string }) {
+  if (category) fireEvent.change(screen.getByLabelText(/category/i), { target: { value: category } });
+  if (status) fireEvent.change(screen.getByLabelText(/status/i), { target: { value: status } });
+  const assigneeInput = screen.queryByLabelText(/assignee/i);
+  if (assignee && assigneeInput) fireEvent.change(assigneeInput, { target: { value: assignee } });
+}
+
+/**
+ * Helper to fill and submit the CreateTaskForm.
+ */
 export function fillAndSubmitCreateTaskForm(data: { title: string; status: string }) {
-    const { title, status } = data;
-    fireEvent.change(screen.getByLabelText(/title/i), { target: { value: title } });
-    fireEvent.change(screen.getByLabelText(/status/i), { target: { value: status } });
-    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+  const { title, status } = data;
+  fireEvent.change(screen.getByLabelText(/title/i), { target: { value: title } });
+  fireEvent.change(screen.getByLabelText(/status/i), { target: { value: status } });
+  fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 }
