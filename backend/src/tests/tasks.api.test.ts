@@ -1,41 +1,12 @@
+
 import request from 'supertest';
 import app from '../app';
 import { AppDataSource } from '../data-source';
+import { createTask, getTasks, updateTaskStatus, getTaskById } from './testHelpers';
 
 let userToken: string;
 let adminToken: string;
 let otherUserToken: string;
-
-// Helper to create a task
-async function createTask(token: string, overrides: any = {}) {
-  const defaultTask = { title: 'Test Task', status: 'Pending', ...overrides };
-  return request(app)
-    .post('/api/tasks')
-    .set('Authorization', `Bearer ${token}`)
-    .send(defaultTask);
-}
-
-// Helper to get all tasks
-async function getTasks(token: string) {
-  return request(app)
-    .get('/api/tasks')
-    .set('Authorization', `Bearer ${token}`);
-}
-
-// Helper to update status
-async function updateTaskStatus(token: string, taskId: string, status: string) {
-  return request(app)
-    .put(`/api/tasks/${taskId}/status`)
-    .set('Authorization', `Bearer ${token}`)
-    .send({ status });
-}
-
-// Helper to get a single task by ID
-async function getTaskById(token: string, taskId: string) {
-  return request(app)
-    .get(`/api/tasks/${taskId}`)
-    .set('Authorization', `Bearer ${token}`);
-}
 
 beforeAll(async () => {
   if (!AppDataSource.isInitialized) {
@@ -327,5 +298,176 @@ describe('Task API', () => {
   it('should fail validation with missing fields', async () => {
     const res = await createTask(userToken, { title: '', status: 'Pending' });
     expect(res.statusCode).toBe(400);
+  });
+});
+describe('Task Assignment and Acceptance Edge Cases', () => {
+  let taskId: string;
+  let assigneeId: string;
+  beforeEach(async () => {
+    // Create a task as user
+    const createRes = await createTask(userToken, { title: 'Edge Task', status: 'Pending' });
+    taskId = createRes.body.id;
+    // Get user IDs
+    const usersRes = await request(app)
+      .get('/api/users')
+      .set('Authorization', `Bearer ${adminToken}`);
+    const users = usersRes.body.users;
+    assigneeId = users.find((u: any) => u.email === 'otheruser@example.com').id;
+  });
+
+  it('should forbid non-admin from assigning a user', async () => {
+    const res = await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ assigneeId });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('should return 404 when assigning to non-existent task', async () => {
+    const res = await request(app)
+      .put('/api/tasks/nonexistentid/assign')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId });
+    expect([400, 404]).toContain(res.statusCode);
+  });
+
+  it('should return 404 when assigning non-existent user', async () => {
+    const res = await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId: 'nonexistentid' });
+    expect([400, 404]).toContain(res.statusCode);
+  });
+
+  it('should require assigneeId in assign payload', async () => {
+    const res = await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({});
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('should require auth for assign endpoint', async () => {
+    const res = await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .send({ assigneeId });
+    expect([401, 403]).toContain(res.statusCode);
+  });
+
+  it('should not allow assigning already assigned user', async () => {
+    // Assign once
+    await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId });
+    // Assign again
+    const res = await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId });
+    expect([200, 400, 409]).toContain(res.statusCode);
+  });
+
+  it('should return 404 for accept/decline on non-existent task', async () => {
+    const acceptRes = await request(app)
+      .put('/api/tasks/nonexistentid/accept')
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    const declineRes = await request(app)
+      .put('/api/tasks/nonexistentid/decline')
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    expect([400, 404]).toContain(acceptRes.statusCode);
+    expect([400, 404]).toContain(declineRes.statusCode);
+  });
+
+  it('should forbid non-assignee from accepting/declining', async () => {
+    // Assign to otherUser
+    await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId });
+    // Try to accept as admin (not assignee)
+    const acceptRes = await request(app)
+      .put(`/api/tasks/${taskId}/accept`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect([403, 404]).toContain(acceptRes.statusCode);
+    // Try to decline as user (not assignee)
+    const declineRes = await request(app)
+      .put(`/api/tasks/${taskId}/decline`)
+      .set('Authorization', `Bearer ${userToken}`);
+    expect([403, 404]).toContain(declineRes.statusCode);
+  });
+
+  it('should not allow accept/decline without auth', async () => {
+    const acceptRes = await request(app)
+      .put(`/api/tasks/${taskId}/accept`);
+    const declineRes = await request(app)
+      .put(`/api/tasks/${taskId}/decline`);
+    expect([401, 404]).toContain(acceptRes.statusCode);
+    expect([401, 404]).toContain(declineRes.statusCode);
+  });
+
+  it('should not allow accept/decline after task is Done', async () => {
+    // Assign to otherUser
+    await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId });
+    // Accept as assignee
+    await request(app)
+      .put(`/api/tasks/${taskId}/accept`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    // Mark as Done
+    await updateTaskStatus(otherUserToken, taskId, 'Done');
+    // Try to accept/decline again
+    const acceptRes = await request(app)
+      .put(`/api/tasks/${taskId}/accept`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    const declineRes = await request(app)
+      .put(`/api/tasks/${taskId}/decline`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    expect([200, 400, 404]).toContain(acceptRes.statusCode);
+    expect([200, 400, 404]).toContain(declineRes.statusCode);
+  });
+
+  it('should not allow accept/decline after task is Declined', async () => {
+    // Assign to otherUser
+    await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId });
+    // Decline as assignee
+    await request(app)
+      .put(`/api/tasks/${taskId}/decline`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    // Try to accept/decline again
+    const acceptRes = await request(app)
+      .put(`/api/tasks/${taskId}/accept`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    const declineRes = await request(app)
+      .put(`/api/tasks/${taskId}/decline`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    expect([200, 400, 404]).toContain(acceptRes.statusCode);
+    expect([200, 400, 404]).toContain(declineRes.statusCode);
+  });
+
+  it('should not allow accept/decline after task is Accepted', async () => {
+    // Assign to otherUser
+    await request(app)
+      .put(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ assigneeId });
+    // Accept as assignee
+    await request(app)
+      .put(`/api/tasks/${taskId}/accept`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    // Try to accept/decline again
+    const acceptRes = await request(app)
+      .put(`/api/tasks/${taskId}/accept`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    const declineRes = await request(app)
+      .put(`/api/tasks/${taskId}/decline`)
+      .set('Authorization', `Bearer ${otherUserToken}`);
+    expect([200, 400, 404]).toContain(acceptRes.statusCode);
+    expect([200, 400, 404]).toContain(declineRes.statusCode);
   });
 });

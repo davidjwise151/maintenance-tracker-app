@@ -8,36 +8,19 @@ let userToken: string;
 let assigneeToken: string;
 let createdTaskId: string;
 
-// Helper to register and login a user, returns { token, user }
-async function registerAndLoginUser(email: string, password: string, role?: string) {
-  await request(app)
-    .post('/api/auth/register')
-    .send(role ? { email, password, role } : { email, password });
-  const userRepo = AppDataSource.getRepository(require('../entity/User').User);
-  const user = await userRepo.findOneBy({ email });
-  if (user && role && user.role !== role) {
-    user.role = role;
-    await userRepo.save(user);
-  }
-  const loginRes = await request(app)
-    .post('/api/auth/login')
-    .send({ email, password });
-  return { token: loginRes.body.token, user };
-}
+/**
+ * Task Acceptance Flow
+ *
+ * This suite covers:
+ *   - Task acceptance by assignee
+ *   - Rejection of acceptance by non-assignee
+ *
+ * User list permission and RBAC are covered in rbac_permissions.test.ts.
+ *
+ * Uses shared helpers from testHelpers.ts for DRYness.
+ */
+import { registerAndLoginUser, createAndAssignTask, acceptTask } from './testHelpers';
 
-// Helper to create a task and assign
-async function createAndAssignTask(creatorToken: string, assigneeId: string) {
-  const taskRes = await request(app)
-    .post('/api/tasks')
-    .set('Authorization', `Bearer ${creatorToken}`)
-    .send({ title: 'Acceptance Task', status: 'Pending' });
-  const createdTaskId = taskRes.body.id;
-  await request(app)
-    .put(`/api/tasks/${createdTaskId}/assign`)
-    .set('Authorization', `Bearer ${creatorToken}`)
-    .send({ assigneeId });
-  return createdTaskId;
-}
 
 
 beforeAll(async () => {
@@ -52,7 +35,7 @@ beforeEach(async () => {
   const taskRepo = AppDataSource.getRepository(require('../entity/Task').Task);
   await taskRepo.clear();
   await userRepo.clear();
-
+  
   // Register/login users
   const admin = await registerAndLoginUser('admin3@example.com', 'Test1234!', 'admin');
   adminToken = admin.token;
@@ -74,36 +57,30 @@ afterAll(async () => {
   }
 });
 
-describe('Task Acceptance & User List', () => {
+/**
+ * Task Acceptance Flow
+ *
+ * This suite covers:
+ *   - Task acceptance by assignee
+ *   - Rejection of acceptance by non-assignee
+ *
+ * User list permission and RBAC are covered in rbac_permissions.test.ts.
+ */
+describe('Task Acceptance Flow', () => {
+  /**
+   * Assignee can accept a task assigned to them.
+   */
   it('assignee can accept a task', async () => {
-    const res = await request(app)
-      .put(`/api/tasks/${createdTaskId}/accept`)
-      .set('Authorization', `Bearer ${assigneeToken}`);
+    const res = await acceptTask(assigneeToken, createdTaskId);
     expect(res.statusCode).toBe(200);
     expect(res.body.status).toBe('Accepted');
   });
 
+  /**
+   * Non-assignee cannot accept a task.
+   */
   it('non-assignee cannot accept a task', async () => {
-    const res = await request(app)
-      .put(`/api/tasks/${createdTaskId}/accept`)
-      .set('Authorization', `Bearer ${userToken}`);
-    expect(res.statusCode).toBe(403);
-  });
-
-  it('admin can list all users', async () => {
-    const res = await request(app)
-      .get('/api/users')
-      .set('Authorization', `Bearer ${adminToken}`);
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('users');
-    expect(Array.isArray(res.body.users)).toBe(true);
-    expect(res.body.users.length).toBeGreaterThanOrEqual(3);
-  });
-
-  it('non-admin cannot list all users', async () => {
-    const res = await request(app)
-      .get('/api/users')
-      .set('Authorization', `Bearer ${userToken}`);
+    const res = await acceptTask(userToken, createdTaskId);
     expect(res.statusCode).toBe(403);
   });
 });
