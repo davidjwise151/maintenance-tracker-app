@@ -9,142 +9,92 @@ dotenv.config({ path: './backend/.env' });
 
 // This file contains the actual seeding logic for users and tasks.
 // It can be run as a script (CLI) or called from the API endpoint.
+
 export async function seedDatabase() {
-  // Only initialize if not already initialized (for API endpoint usage)
+  // Initialize DB connection if not already done (for API endpoint usage)
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
   const userRepo = AppDataSource.getRepository(User);
   const taskRepo = AppDataSource.getRepository(Task);
 
-  // Create or update test admin user
-  let adminUser = await userRepo.findOneBy({ email: 'david@example.com' });
-  if (!adminUser) {
-    const hashed = await bcrypt.hash('Password!', 10);
-    adminUser = userRepo.create({ email: 'david@example.com', password: hashed, role: 'admin' });
-    await userRepo.save(adminUser);
-  } else if (adminUser.role !== 'admin') {
-    adminUser.role = 'admin';
-    await userRepo.save(adminUser);
+
+
+  // --- Admin accounts ---
+  // Always ensure main admin exists and is admin
+  const adminAccounts = [
+    { email: 'david@example.com', password: 'Password!' },
+    { email: 'admin@example.com', password: 'Password!' },
+  ];
+  const admins: User[] = [];
+  for (const admin of adminAccounts) {
+    let user = await userRepo.findOneBy({ email: admin.email });
+    if (!user) {
+      const hashed = await bcrypt.hash(admin.password, 10);
+      user = userRepo.create({ email: admin.email, password: hashed, role: 'admin' });
+      user = await userRepo.save(user);
+    } else if (user.role !== 'admin') {
+      user.role = 'admin';
+      user = await userRepo.save(user);
+    }
+    admins.push(user);
   }
 
-  // Create 5 other users
-  const usersData = [
+  // --- Regular users ---
+  const userAccounts = [
     { email: 'alice@example.com', password: 'Password!' },
     { email: 'bob@example.com', password: 'Password!' },
     { email: 'carol@example.com', password: 'Password!' },
     { email: 'dave@example.com', password: 'Password!' },
     { email: 'eve@example.com', password: 'Password!' },
   ];
-
-  const users: User[] = [adminUser];
-  for (const data of usersData) {
-    const hashed = await bcrypt.hash(data.password, 10);
-    const user = userRepo.create({ email: data.email, password: hashed });
-    users.push(await userRepo.save(user));
+  const users: User[] = [...admins];
+  for (const account of userAccounts) {
+    let user = await userRepo.findOneBy({ email: account.email });
+    if (!user) {
+      const hashed = await bcrypt.hash(account.password, 10);
+      user = userRepo.create({ email: account.email, password: hashed });
+      user = await userRepo.save(user);
+    }
+    users.push(user);
   }
 
-  // Create 10 tasks, 2 for each user, with varied assignments
+  // --- Tasks: cover all statuses, categories, due dates, assignments ---
   const now = Date.now();
   const tasksData = [
-    {
-      title: 'Check HVAC system',
-      description: 'Routine check of heating and cooling.',
-      status: 'Pending',
-      category: 'Maintenance',
-      dueDate: now + 86400000,
-      user: users[0],
-      assignee: users[1],
-    },
-    {
-      title: 'Replace air filters',
-      description: 'Replace all air filters in building.',
-      status: 'In Progress',
-      category: 'Maintenance',
-      dueDate: now + 172800000,
-      user: users[0],
-      assignee: users[2],
-    },
-    {
-      title: 'Inspect fire extinguishers',
-      description: 'Annual fire safety inspection.',
-      status: 'Completed',
-      category: 'Safety',
-      completedAt: now - 86400000,
-      dueDate: now,
-      user: users[1],
-      assignee: users[0],
-    },
-    {
-      title: 'Test emergency lights',
-      description: 'Monthly emergency lighting test.',
-      status: 'Pending',
-      category: 'Safety',
-      dueDate: now + 259200000,
-      user: users[1],
-      assignee: users[3],
-    },
-    {
-      title: 'Clean gutters',
-      description: 'Remove debris from gutters.',
-      status: 'In Progress',
-      category: 'Cleaning',
-      dueDate: now + 345600000,
-      user: users[2],
-      assignee: users[4],
-    },
-    {
-      title: 'Paint hallway',
-      description: 'Repaint main hallway walls.',
-      status: 'Pending',
-      category: 'Renovation',
-      dueDate: now + 432000000,
-      user: users[2],
-      assignee: users[1],
-    },
-    {
-      title: 'Service elevator',
-      description: 'Annual elevator maintenance.',
-      status: 'Completed',
-      category: 'Maintenance',
-      completedAt: now - 172800000,
-      dueDate: now + 604800000,
-      user: users[3],
-      assignee: users[2],
-    },
-    {
-      title: 'Check plumbing',
-      description: 'Inspect pipes for leaks.',
-      status: 'Pending',
-      category: 'Inspection',
-      dueDate: now + 518400000,
-      user: users[3],
-      assignee: users[4],
-    },
-    {
-      title: 'Test smoke alarms',
-      description: 'Quarterly smoke alarm test.',
-      status: 'In Progress',
-      category: 'Safety',
-      dueDate: now + 691200000,
-      user: users[4],
-      assignee: users[0],
-    },
-    {
-      title: 'Replace light bulbs',
-      description: 'Replace all burnt out bulbs.',
-      status: 'Pending',
-      category: 'Maintenance',
-      dueDate: now + 777600000,
-      user: users[4],
-      assignee: users[3],
-    },
+    // Maintenance
+    { title: 'Check HVAC system', description: 'Routine check of heating and cooling.', status: 'Pending', category: 'Maintenance', dueDate: now + 86400000, user: admins[0], assignee: users[2] },
+    { title: 'Replace air filters', description: 'Replace all air filters in building.', status: 'In Progress', category: 'Maintenance', dueDate: now + 172800000, user: admins[1], assignee: users[3] },
+    { title: 'Service elevator', description: 'Annual elevator maintenance.', status: 'Done', category: 'Maintenance', completedAt: now - 172800000, dueDate: now + 604800000, user: users[2], assignee: admins[0] },
+
+    // Safety
+    { title: 'Inspect fire extinguishers', description: 'Annual fire safety inspection.', status: 'Completed', category: 'Safety', completedAt: now - 86400000, dueDate: now, user: users[3], assignee: admins[1] },
+    { title: 'Test emergency lights', description: 'Monthly emergency lighting test.', status: 'Pending', category: 'Safety', dueDate: now + 259200000, user: users[4], assignee: users[5] },
+    { title: 'Test smoke alarms', description: 'Quarterly smoke alarm test.', status: 'Accepted', category: 'Safety', dueDate: now + 691200000, user: users[5], assignee: admins[0] },
+
+    // Cleaning
+    { title: 'Clean gutters', description: 'Remove debris from gutters.', status: 'In Progress', category: 'Cleaning', dueDate: now + 345600000, user: users[2], assignee: users[4] },
+
+    // Renovation
+    { title: 'Paint hallway', description: 'Repaint main hallway walls.', status: 'Pending', category: 'Renovation', dueDate: now + 432000000, user: users[3], assignee: users[1] },
+
+    // Inspection
+    { title: 'Check plumbing', description: 'Inspect pipes for leaks.', status: 'Overdue', category: 'Inspection', dueDate: now - 86400000, user: users[4], assignee: users[2] },
+
+    // More variety
+    { title: 'Replace light bulbs', description: 'Replace all burnt out bulbs.', status: 'Pending', category: 'Maintenance', dueDate: now + 777600000, user: users[5], assignee: users[3] },
+    { title: 'Window cleaning', description: 'Clean all exterior windows.', status: 'Done', category: 'Cleaning', completedAt: now - 432000000, dueDate: now - 259200000, user: admins[1], assignee: users[4] },
+    { title: 'Roof inspection', description: 'Annual roof check.', status: 'Completed', category: 'Inspection', completedAt: now - 604800000, dueDate: now - 604800000, user: users[1], assignee: admins[0] },
+    { title: 'Fire drill', description: 'Quarterly fire drill.', status: 'Accepted', category: 'Safety', dueDate: now + 345600000, user: users[2], assignee: admins[1] },
+    { title: 'Lobby renovation', description: 'Renovate lobby area.', status: 'In Progress', category: 'Renovation', dueDate: now + 1209600000, user: users[3], assignee: users[5] },
+    { title: 'Basement cleaning', description: 'Deep clean basement.', status: 'Overdue', category: 'Cleaning', dueDate: now - 172800000, user: users[4], assignee: users[1] },
   ];
 
   for (const data of tasksData) {
     const task = taskRepo.create(data);
     await taskRepo.save(task);
   }
+
 
   // Only destroy if running as a script, not from API
   if (require.main === module) {
