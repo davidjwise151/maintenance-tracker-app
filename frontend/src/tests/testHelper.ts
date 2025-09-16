@@ -1,3 +1,23 @@
+/**
+ * Helper to get the Search button in MaintenanceTaskLog.
+ */
+export function getSearchButton() {
+  return screen.getAllByRole('button', { name: /^search$/i })[0];
+}
+
+/**
+ * Helper to assert a task is present by title.
+ */
+export function expectTaskPresent(title: string) {
+  expect(screen.getByText(title)).toBeInTheDocument();
+}
+
+/**
+ * Helper to mock window.confirm.
+ */
+export function mockConfirm(value: boolean) {
+  window.confirm = jest.fn(() => value);
+}
 
 /**
  * Helper to fill and submit the AuthForm for login/register tests.
