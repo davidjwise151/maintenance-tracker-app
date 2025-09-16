@@ -2,10 +2,42 @@ import request from 'supertest';
 import app from '../app';
 import { AppDataSource } from '../data-source';
 
+
 let adminToken: string;
 let userToken: string;
 let assigneeToken: string;
 let createdTaskId: string;
+
+// Helper to register and login a user, returns { token, user }
+async function registerAndLoginUser(email: string, password: string, role?: string) {
+  await request(app)
+    .post('/api/auth/register')
+    .send(role ? { email, password, role } : { email, password });
+  const userRepo = AppDataSource.getRepository(require('../entity/User').User);
+  const user = await userRepo.findOneBy({ email });
+  if (user && role && user.role !== role) {
+    user.role = role;
+    await userRepo.save(user);
+  }
+  const loginRes = await request(app)
+    .post('/api/auth/login')
+    .send({ email, password });
+  return { token: loginRes.body.token, user };
+}
+
+// Helper to create a task and assign
+async function createAndAssignTask(creatorToken: string, assigneeId: string) {
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${creatorToken}`)
+    .send({ title: 'Acceptance Task', status: 'Pending' });
+  const createdTaskId = taskRes.body.id;
+  await request(app)
+    .put(`/api/tasks/${createdTaskId}/assign`)
+    .set('Authorization', `Bearer ${creatorToken}`)
+    .send({ assigneeId });
+  return createdTaskId;
+}
 
 
 beforeAll(async () => {
@@ -20,53 +52,20 @@ beforeEach(async () => {
   const taskRepo = AppDataSource.getRepository(require('../entity/Task').Task);
   await taskRepo.clear();
   await userRepo.clear();
-  // Register and login admin
-  await request(app)
-    .post('/api/auth/register')
-    .send({ email: 'admin3@example.com', password: 'Test1234!', role: 'admin' });
-  const adminUser = await userRepo.findOneBy({ email: 'admin3@example.com' });
-  if (adminUser && adminUser.role !== 'admin') {
-    adminUser.role = 'admin';
-    await userRepo.save(adminUser);
-  }
-  const adminLogin = await request(app)
-    .post('/api/auth/login')
-    .send({ email: 'admin3@example.com', password: 'Test1234!' });
-  adminToken = adminLogin.body.token;
 
-  // Register and login regular user
-  await request(app)
-    .post('/api/auth/register')
-    .send({ email: 'user3@example.com', password: 'Test1234!' });
-  const userLogin = await request(app)
-    .post('/api/auth/login')
-    .send({ email: 'user3@example.com', password: 'Test1234!' });
-  userToken = userLogin.body.token;
-
-  // Register and login assignee user
-  await request(app)
-    .post('/api/auth/register')
-    .send({ email: 'assignee3@example.com', password: 'Test1234!' });
-  const assigneeLogin = await request(app)
-    .post('/api/auth/login')
-    .send({ email: 'assignee3@example.com', password: 'Test1234!' });
-  assigneeToken = assigneeLogin.body.token;
+  // Register/login users
+  const admin = await registerAndLoginUser('admin3@example.com', 'Test1234!', 'admin');
+  adminToken = admin.token;
+  const user = await registerAndLoginUser('user3@example.com', 'Test1234!');
+  userToken = user.token;
+  const assignee = await registerAndLoginUser('assignee3@example.com', 'Test1234!');
+  assigneeToken = assignee.token;
 
   // Admin creates a task and assigns to assignee
-  const taskRes = await request(app)
-    .post('/api/tasks')
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send({ title: 'Acceptance Task', status: 'Pending' });
-  createdTaskId = taskRes.body.id;
-  // Assign assignee
-  const assigneeUser = await userRepo.findOneBy({ email: 'assignee3@example.com' });
-  if (!assigneeUser) {
-    throw new Error('Assignee user not found in DB');
+  if (!assignee.user) {
+    throw new Error('Assignee user is null');
   }
-  await request(app)
-    .put(`/api/tasks/${createdTaskId}/assign`)
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send({ assigneeId: assigneeUser.id });
+  createdTaskId = await createAndAssignTask(adminToken, assignee.user.id);
 });
 
 afterAll(async () => {
