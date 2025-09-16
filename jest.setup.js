@@ -1,7 +1,6 @@
+// Jest global setup for database reset
+const { AppDataSource } = require('./backend/src/data-source');
 
-const { AppDataSource } = require('../data-source');
-
-// Utility to reset the database before each test file
 beforeEach(async () => {
   if (AppDataSource.isInitialized) {
     await AppDataSource.dropDatabase();

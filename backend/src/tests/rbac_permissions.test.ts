@@ -1,3 +1,28 @@
+// --- Helper functions ---
+async function registerAndLoginUser({ email, password, role = 'user' }: { email: string, password: string, role?: string }) {
+  await request(app)
+    .post('/api/auth/register')
+    .send({ email, password, role });
+  const loginRes = await request(app)
+    .post('/api/auth/login')
+    .send({ email, password });
+  return loginRes.body.token;
+}
+
+async function createTask({ token, title = 'Test Task', status = 'Pending', category }: { token: string, title?: string, status?: string, category?: string }) {
+  const res = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ title, status, category });
+  return res.body.id;
+}
+
+async function assignTask({ taskId, assigneeId, token }: { taskId: string, assigneeId: string, token: string }) {
+  return request(app)
+    .put(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ assigneeId });
+}
 // Unified RBAC Permissions Test Suite
 import { config } from 'dotenv';
 config({ path: require('path').resolve(__dirname, '../../.env') });
@@ -26,42 +51,27 @@ beforeEach(async () => {
   const taskRepo = AppDataSource.getRepository(Task);
   await taskRepo.clear();
   await userRepo.clear();
-  // Create admin and user accounts
-  const adminRes = await request(app)
-    .post('/api/auth/register')
-    .send({ email: 'admin@example.com', password: 'adminpass', role: 'admin' });
-  adminId = adminRes.body.id;
-  const userRes = await request(app)
-    .post('/api/auth/register')
-    .send({ email: 'user@example.com', password: 'userpass', role: 'user' });
-  userId = userRes.body.id;
-  // Login both users
-  const adminLogin = await request(app)
-    .post('/api/auth/login')
-    .send({ email: 'admin@example.com', password: 'adminpass' });
-  adminToken = adminLogin.body.token;
-  const userLogin = await request(app)
-    .post('/api/auth/login')
-    .send({ email: 'user@example.com', password: 'userpass' });
-  userToken = userLogin.body.token;
-  // Create a test task as user
-  const taskRes = await request(app)
-    .post('/api/tasks')
-    .set('Authorization', `Bearer ${userToken}`)
-    .send({ title: 'Test Task', status: 'Pending' });
-  createdTaskId = taskRes.body.id;
-  // Register and login user2 for assignment/edge tests
-  await request(app)
-    .post('/api/auth/register')
-    .send({ email: 'user2@example.com', password: 'Test1234!' });
-  const user2Login = await request(app)
-    .post('/api/auth/login')
-    .send({ email: 'user2@example.com', password: 'Test1234!' });
+  // Create admin and user accounts and login
+  adminToken = await registerAndLoginUser({ email: 'admin@example.com', password: 'adminpass', role: 'admin' });
+  userToken = await registerAndLoginUser({ email: 'user@example.com', password: 'userpass', role: 'user' });
+  // Get user IDs
   const usersRes = await request(app)
     .get('/api/users')
     .set('Authorization', `Bearer ${adminToken}`);
+  adminId = usersRes.body.users.find((u: any) => u.email === 'admin@example.com').id;
+  userId = usersRes.body.users.find((u: any) => u.email === 'user@example.com').id;
+  // Create a test task as user
+  createdTaskId = await createTask({ token: userToken, title: 'Test Task', status: 'Pending' });
+  // Register and login user2 for assignment/edge tests
   user2 = usersRes.body.users.find((u: any) => u.email === 'user2@example.com');
-  user2.token = user2Login.body.token;
+  if (!user2) {
+    await registerAndLoginUser({ email: 'user2@example.com', password: 'Test1234!' });
+    const usersRes2 = await request(app)
+      .get('/api/users')
+      .set('Authorization', `Bearer ${adminToken}`);
+    user2 = usersRes2.body.users.find((u: any) => u.email === 'user2@example.com');
+  }
+  user2.token = await registerAndLoginUser({ email: 'user2@example.com', password: 'Test1234!' });
 });
 
 afterAll(async () => {
@@ -141,11 +151,7 @@ describe('Permissions: Tasks Route', () => {
     expect(res.body.success).toBe(true);
   });
   it('should allow owner to delete their own task', async () => {
-    const taskRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${userToken}`)
-      .send({ title: 'Owner Task', status: 'Pending' });
-    const ownerTaskId = taskRes.body.id;
+    const ownerTaskId = await createTask({ token: userToken, title: 'Owner Task', status: 'Pending' });
     const res = await request(app)
       .delete(`/api/tasks/${ownerTaskId}`)
       .set('Authorization', `Bearer ${userToken}`);
@@ -153,44 +159,24 @@ describe('Permissions: Tasks Route', () => {
     expect(res.body.success).toBe(true);
   });
   it('should forbid regular user from deleting others tasks', async () => {
-    const adminTaskRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ title: 'Admin Task', status: 'Pending' });
-    const adminTaskId = adminTaskRes.body.id;
+    const adminTaskId = await createTask({ token: adminToken, title: 'Admin Task', status: 'Pending' });
     const res = await request(app)
       .delete(`/api/tasks/${adminTaskId}`)
       .set('Authorization', `Bearer ${userToken}`);
     expect(res.status).toBe(403);
   });
   it('should only allow admin to assign/reassign tasks', async () => {
-    const taskRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${userToken}`)
-      .send({ title: 'Assign Task', status: 'Pending' });
-    const assignTaskId = taskRes.body.id;
-    const otherUserRes = await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'other@example.com', password: 'otherpass', role: 'user' });
-    const otherUserId = otherUserRes.body.id;
-    const otherLogin = await request(app)
-      .post('/api/auth/login')
-      .send({ email: 'other@example.com', password: 'otherpass' });
-    const otherToken = otherLogin.body.token;
-    const res = await request(app)
-      .put(`/api/tasks/${assignTaskId}/assign`)
-      .set('Authorization', `Bearer ${otherToken}`)
-      .send({ assigneeId: userId });
+    const assignTaskId = await createTask({ token: userToken, title: 'Assign Task', status: 'Pending' });
+    const otherToken = await registerAndLoginUser({ email: 'other@example.com', password: 'otherpass', role: 'user' });
+    const usersRes = await request(app)
+      .get('/api/users')
+      .set('Authorization', `Bearer ${adminToken}`);
+    const otherUserId = usersRes.body.users.find((u: any) => u.email === 'other@example.com').id;
+    const res = await assignTask({ taskId: assignTaskId, assigneeId: userId, token: otherToken });
     expect(res.status).toBe(403);
-    const resOwner = await request(app)
-      .put(`/api/tasks/${assignTaskId}/assign`)
-      .set('Authorization', `Bearer ${userToken}`)
-      .send({ assigneeId: otherUserId });
+    const resOwner = await assignTask({ taskId: assignTaskId, assigneeId: otherUserId, token: userToken });
     expect(resOwner.status).toBe(403);
-    const resAdmin = await request(app)
-      .put(`/api/tasks/${assignTaskId}/assign`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ assigneeId: otherUserId });
+    const resAdmin = await assignTask({ taskId: assignTaskId, assigneeId: otherUserId, token: adminToken });
     expect(resAdmin.status).toBe(200);
   });
 });
@@ -198,43 +184,25 @@ describe('Permissions: Tasks Route', () => {
 // --- Task assignment & edge case tests ---
 describe('Task Assignment & Permissions (Edge Cases)', () => {
   it('admin can assign a user to a task', async () => {
-    const assignRes = await request(app)
-      .put(`/api/tasks/${createdTaskId}/assign`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ assigneeId: user2.id });
+    const assignRes = await assignTask({ taskId: createdTaskId, assigneeId: user2.id, token: adminToken });
     expect(assignRes.statusCode).toBe(200);
     expect(assignRes.body.assignee).toMatchObject({ id: user2.id, email: user2.email });
   });
   it('non-admin cannot assign a user to a task', async () => {
-    const assignRes = await request(app)
-      .put(`/api/tasks/${createdTaskId}/assign`)
-      .set('Authorization', `Bearer ${userToken}`)
-      .send({ assigneeId: user2.id });
+    const assignRes = await assignTask({ taskId: createdTaskId, assigneeId: user2.id, token: userToken });
     expect(assignRes.statusCode).toBe(403);
   });
   it('admin cannot assign non-existent user', async () => {
-    const assignRes = await request(app)
-      .put(`/api/tasks/${createdTaskId}/assign`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ assigneeId: 'nonexistentid' });
+    const assignRes = await assignTask({ taskId: createdTaskId, assigneeId: 'nonexistentid', token: adminToken });
     expect([400, 404]).toContain(assignRes.statusCode);
   });
   it('admin cannot assign to non-existent task', async () => {
-    const assignRes = await request(app)
-      .put(`/api/tasks/nonexistentid/assign`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ assigneeId: user2.id });
+    const assignRes = await assignTask({ taskId: 'nonexistentid', assigneeId: user2.id, token: adminToken });
     expect([400, 404]).toContain(assignRes.statusCode);
   });
   it('admin cannot assign user twice to same task', async () => {
-    await request(app)
-      .put(`/api/tasks/${createdTaskId}/assign`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ assigneeId: user2.id });
-    const assignRes = await request(app)
-      .put(`/api/tasks/${createdTaskId}/assign`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ assigneeId: user2.id });
+    await assignTask({ taskId: createdTaskId, assigneeId: user2.id, token: adminToken });
+    const assignRes = await assignTask({ taskId: createdTaskId, assigneeId: user2.id, token: adminToken });
     expect([200, 400, 409]).toContain(assignRes.statusCode);
   });
   it('assignment fails with missing token', async () => {
@@ -257,11 +225,7 @@ describe('Task Assignment & Permissions (Edge Cases)', () => {
     expect(delRes.statusCode).toBe(200);
   });
   it('non-admin cannot delete a task', async () => {
-    const taskRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ title: 'Another Task', status: 'Pending' });
-    const taskId = taskRes.body.id;
+    const taskId = await createTask({ token: adminToken, title: 'Another Task', status: 'Pending' });
     const delRes = await request(app)
       .delete(`/api/tasks/${taskId}`)
       .set('Authorization', `Bearer ${userToken}`);
@@ -286,23 +250,10 @@ describe('Task Assignment & Permissions (Edge Cases)', () => {
   });
   it('assignee cannot delete task (only owner or admin can)', async () => {
     // Create a task as user1 (owner)
-    const ownerRes = await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'owner@example.com', password: 'ownerpass', role: 'user' });
-    const ownerLogin = await request(app)
-      .post('/api/auth/login')
-      .send({ email: 'owner@example.com', password: 'ownerpass' });
-    const ownerToken = ownerLogin.body.token;
-    const taskRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ title: 'Assignee Delete Test', status: 'Pending' });
-    const taskId = taskRes.body.id;
+    const ownerToken = await registerAndLoginUser({ email: 'owner@example.com', password: 'ownerpass', role: 'user' });
+    const taskId = await createTask({ token: ownerToken, title: 'Assignee Delete Test', status: 'Pending' });
     // Assign to user2 (not owner)
-    await request(app)
-      .put(`/api/tasks/${taskId}/assign`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ assigneeId: user2.id });
+    await assignTask({ taskId, assigneeId: user2.id, token: adminToken });
     // Attempt deletion as user2 (assignee, not owner)
     const delRes = await request(app)
       .delete(`/api/tasks/${taskId}`)
