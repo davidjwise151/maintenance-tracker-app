@@ -1,4 +1,3 @@
-
 import request from 'supertest';
 import app from '../app';
 import { AppDataSource } from '../data-source';
@@ -29,6 +28,13 @@ async function updateTaskStatus(token: string, taskId: string, status: string) {
     .put(`/api/tasks/${taskId}/status`)
     .set('Authorization', `Bearer ${token}`)
     .send({ status });
+}
+
+// Helper to get a single task by ID
+async function getTaskById(token: string, taskId: string) {
+  return request(app)
+    .get(`/api/tasks/${taskId}`)
+    .set('Authorization', `Bearer ${token}`);
 }
 
 beforeAll(async () => {
@@ -113,17 +119,19 @@ describe('Task API', () => {
   });
 
   it('should never set isOverdue true for Done tasks', async () => {
-    const past = new Date(Date.now() - 86400000).toISOString();
-    // Create task with past dueDate
-    const createRes = await createTask(userToken, { title: 'Done Task', dueDate: past });
-    const taskId = createRes.body.id;
-    // Mark as Done
-    await updateTaskStatus(userToken, taskId, 'Done');
-    // Fetch tasks
-    const res = await getTasks(userToken);
-    const doneTask = res.body.tasks.find((t: any) => t.title === 'Done Task');
-    expect(doneTask).toBeDefined();
-    expect(doneTask.isOverdue).toBe(false);
+  const past = new Date(Date.now() - 86400000).toISOString();
+  // Create task with past dueDate
+  const createRes = await createTask(userToken, { title: 'Done Task', dueDate: past });
+  const taskId = createRes.body.id;
+  // Accept the task (assignee must accept before Done)
+  await updateTaskStatus(userToken, taskId, 'Accepted');
+  // Mark as Done
+  await updateTaskStatus(userToken, taskId, 'Done');
+  // Fetch the single task by ID
+  const res = await getTaskById(userToken, taskId);
+  expect(res.statusCode).toBe(200);
+  expect(res.body).toHaveProperty('title', 'Done Task');
+  expect(res.body).toHaveProperty('isOverdue', false);
   });
 
   it('should create a task when authenticated', async () => {

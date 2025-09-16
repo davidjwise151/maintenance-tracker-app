@@ -1,4 +1,26 @@
 
+/**
+ * GET /api/tasks/:id
+ * Returns a single task by ID if the authenticated user is the owner, assignee, or admin.
+ * Requires authentication (JWT).
+ * Returns: The task object or error
+ */
+
+/**
+ * GET /api/tasks/:id
+ * Returns a single task by ID if the authenticated user is the owner, assignee, or admin.
+ * Requires authentication (JWT).
+ * Returns: The task object or error
+ */
+// Helper to compute isOverdue for a task (always false for Done)
+function computeIsOverdue(task: any): boolean {
+  if (task.status === "Done") return false;
+  if (task.dueDate && ["Pending", "Accepted", "In-Progress"].includes(task.status)) {
+    return new Date(task.dueDate).getTime() < Date.now();
+  }
+  return false;
+}
+
 import { Router, Request, Response } from "express";
 import { authenticateJWT, authorizeRoles } from "../middleware/auth";
 import { AppDataSource } from "../data-source";
@@ -58,6 +80,7 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   task.assignee = assignee;
   task.status = 'Pending';
   await taskRepo.save(task);
+  // Compute isOverdue for single task response
   return res.status(200).json({
     id: task.id,
     title: task.title,
@@ -67,6 +90,7 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
     completedAt: task.completedAt,
     user: task.user ? { id: task.user.id, email: task.user.email } : null,
     assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+    isOverdue: computeIsOverdue(task),
   });
 });
 
@@ -95,6 +119,7 @@ router.put('/:id/accept', authenticateJWT, async (req: Request, res: Response) =
   }
   task.status = 'Accepted';
   await taskRepo.save(task);
+  // Compute isOverdue for single task response
   res.json({
     id: task.id,
     title: task.title,
@@ -104,6 +129,7 @@ router.put('/:id/accept', authenticateJWT, async (req: Request, res: Response) =
     completedAt: task.completedAt,
     user: task.user ? { id: task.user.id, email: task.user.email } : null,
     assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+    isOverdue: computeIsOverdue(task),
   });
 });
 
@@ -119,7 +145,7 @@ router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => 
   const now = Date.now();
   const twoWeeksMs = 14 * 24 * 60 * 60 * 1000;
   // Upcoming: dueDate between now and now+2weeks, not completed
-  const upcoming = await taskRepo.find({
+  const upcomingRaw = await taskRepo.find({
     where: {
       user: { id: userId },
       dueDate: Between(now, now + twoWeeksMs),
@@ -127,8 +153,7 @@ router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => 
     },
     order: { dueDate: "ASC" },
   });
-  // Late: dueDate before now, not completed
-  const late = await taskRepo.find({
+  const lateRaw = await taskRepo.find({
     where: {
       user: { id: userId },
       dueDate: LessThan(now),
@@ -136,6 +161,14 @@ router.get("/upcoming", authenticateJWT, async (req: Request, res: Response) => 
     },
     order: { dueDate: "ASC" },
   });
+  const addIsOverdue = (task: any) => {
+    return {
+      ...task,
+      isOverdue: computeIsOverdue(task),
+    };
+  };
+  const upcoming = upcomingRaw.map(addIsOverdue);
+  const late = lateRaw.map(addIsOverdue);
   res.json({ upcoming, late });
 });
 
@@ -201,12 +234,12 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   // Status workflow enforcement
   const now = Date.now();
   if (task.assignee) {
-    // Only assignee can move from Accepted to In-Progress, and In-Progress to Done
+    // Allow assignee to move from Pending, Accepted, or In-Progress to Done for practical workflow
     if (status === "Accepted" && task.status === "Pending" && task.assignee.id === userId) {
       task.status = "Accepted";
     } else if (status === "In-Progress" && task.status === "Accepted" && task.assignee.id === userId) {
       task.status = "In-Progress";
-    } else if (status === "Done" && (task.status === "In-Progress" || task.status === "Accepted") && task.assignee.id === userId) {
+    } else if (status === "Done" && ["Pending", "Accepted", "In-Progress"].includes(task.status) && task.assignee.id === userId) {
       task.status = "Done";
       task.completedAt = now;
     } else {
@@ -215,24 +248,28 @@ router.put("/:id/status", authenticateJWT, async (req: Request, res: Response) =
   } else {
     // Owner can update status if no assignee
     task.status = status;
-    task.completedAt = status === "Done" ? now : undefined;
+    if (status === "Done") {
+      task.completedAt = now;
+    } else {
+      task.completedAt = undefined;
+    }
   }
   await taskRepo.save(task);
-  // Compute isOverdue
-  let isOverdue = false;
-  if (task.dueDate && ["Pending", "Accepted", "In-Progress"].includes(task.status)) {
-    isOverdue = new Date(task.dueDate).getTime() < Date.now();
+  // Reload the task with relations to ensure latest status and completedAt
+  const updatedTask = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
+  if (!updatedTask) {
+    return res.status(404).json({ error: 'Task not found after update.' });
   }
   res.json({
-    id: task.id,
-    title: task.title,
-    category: task.category,
-    dueDate: task.dueDate,
-    completedAt: task.completedAt,
-    status: task.status,
-    user: task.user ? { id: task.user.id, email: task.user.email } : null,
-    assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
-    isOverdue,
+    id: updatedTask.id,
+    title: updatedTask.title,
+    category: updatedTask.category,
+    dueDate: updatedTask.dueDate,
+    completedAt: updatedTask.completedAt,
+    status: updatedTask.status,
+    user: updatedTask.user ? { id: updatedTask.user.id, email: updatedTask.user.email } : null,
+    assignee: updatedTask.assignee ? { id: updatedTask.assignee.id, email: updatedTask.assignee.email } : null,
+    isOverdue: computeIsOverdue(updatedTask),
   });
 });
 
@@ -293,77 +330,58 @@ router.get("/", authenticateJWT, async (req: Request, res: Response) => {
 
   // Respond with filtered, paginated tasks
   res.json({
-    tasks: tasks.map(task => {
-      let isOverdue = false;
-      if (task.dueDate && ["Pending", "Accepted", "In-Progress"].includes(task.status)) {
-        isOverdue = new Date(task.dueDate).getTime() < Date.now();
-      }
-      return {
-        id: task.id,
-        title: task.title,
-        category: task.category,
-        status: task.status,
-        dueDate: task.dueDate,
-        completedAt: task.completedAt,
-        user: task.user ? { id: task.user.id, email: task.user.email } : null,
-        assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
-        isOverdue,
-      };
-    }),
-    total,
-    page: Number(page),
-    pageSize: Number(pageSize)
-  });
-});
-
-router.get("/completed", authenticateJWT, async (req: Request, res: Response) => {
-  // Extract query parameters for filtering and pagination
-  const { category, from, to, status = "", page = 1, pageSize = 20, sort = "desc", dueFrom, dueTo } = req.query;
-  const taskRepo = AppDataSource.getRepository(Task);
-
-  // Build query for completed tasks, joining user info
-  let query = taskRepo.createQueryBuilder("task")
-    .leftJoinAndSelect("task.user", "user");
-
-  // Apply filters
-  if (status && status !== 'All') {
-    query = query.andWhere("task.status = :status", { status });
-  }
-  if (category) query = query.andWhere("task.category = :category", { category });
-  if (from) query = query.andWhere("task.completedAt >= :from", { from });
-  if (to) query = query.andWhere("task.completedAt <= :to", { to });
-  // Due date filtering: only apply if both are valid numbers
-  const dueFromNum = dueFrom && !isNaN(Number(dueFrom)) ? Number(dueFrom) : undefined;
-  const dueToNum = dueTo && !isNaN(Number(dueTo)) ? Number(dueTo) : undefined;
-  if (dueFromNum !== undefined) query = query.andWhere("task.dueDate >= :dueFromNum", { dueFromNum });
-  if (dueToNum !== undefined) query = query.andWhere("task.dueDate <= :dueToNum", { dueToNum });
-
-  // Sort results by completedAt date
-  query = query.orderBy("task.completedAt", sort === "asc" ? "ASC" : "DESC");
-
-  // Apply pagination
-  const skip = (Number(page) - 1) * Number(pageSize);
-  query = query.skip(skip).take(Number(pageSize));
-
-  // Execute query and get results
-  const [tasks, total] = await query.getManyAndCount();
-
-  // Respond with filtered, paginated tasks
-  res.json({
     tasks: tasks.map(task => ({
       id: task.id,
       title: task.title,
       category: task.category,
       status: task.status,
-  dueDate: task.dueDate,
+      dueDate: task.dueDate,
       completedAt: task.completedAt,
       user: task.user ? { id: task.user.id, email: task.user.email } : null,
+      assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+      isOverdue: computeIsOverdue(task),
     })),
     total,
     page: Number(page),
     pageSize: Number(pageSize)
   });
 });
+
+router.get('/:id', authenticateJWT, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const jwtUser = (req as any).user;
+  const userId = jwtUser && jwtUser.id;
+  const userRole = jwtUser && jwtUser.role;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
+  }
+  const taskRepo = AppDataSource.getRepository(Task);
+  console.log('[DEBUG] GET /api/tasks/:id', { id });
+  const task = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
+  console.log('[DEBUG] Task found:', task);
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+  // Only admin, owner, or assignee can fetch
+  const isOwner = task.user && task.user.id === userId;
+  const isAssignee = task.assignee && task.assignee.id === userId;
+  if (userRole !== 'admin' && !isOwner && !isAssignee) {
+    // For security, return 404 if not permitted (do not reveal existence)
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+  res.json({
+    id: task.id,
+    title: task.title,
+    category: task.category,
+    status: task.status,
+    dueDate: task.dueDate,
+    completedAt: task.completedAt,
+    user: task.user ? { id: task.user.id, email: task.user.email } : null,
+    assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
+    isOverdue: computeIsOverdue(task),
+  });
+});
+
 
 
 /**
@@ -404,6 +422,7 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "User not found." });
   }
 
+
   // Only admins can assign at creation. If not admin, force assignee to self.
   let assignee: User | undefined = undefined;
   if (userRole === 'admin' && assigneeId) {
@@ -418,12 +437,13 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
 
   // If status is missing, default to 'Pending'.
   let computedStatus = status || "Pending";
-  if (assignee) {
-    computedStatus = "Pending";
-  }
-  // Validate status value
-  if (computedStatus && !allowedStatuses.includes(computedStatus)) {
+  // Always validate status, regardless of assignee/admin
+  if (!allowedStatuses.includes(computedStatus)) {
     return res.status(400).json({ error: "Invalid status value. Allowed: Pending, Accepted, In-Progress, Done." });
+  }
+  // If not admin, or if assigning to self, force status to Pending
+  if (userRole !== 'admin' || !assigneeId || assignee.id === user.id) {
+    computedStatus = "Pending";
   }
   const completedAt = computedStatus === "Done" ? Date.now() : undefined;
 
@@ -438,11 +458,6 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     assignee,
   });
   await taskRepo.save(task);
-  // Compute isOverdue
-  let isOverdue = false;
-  if (task.dueDate && ["Pending", "Accepted", "In-Progress"].includes(task.status)) {
-    isOverdue = new Date(task.dueDate).getTime() < Date.now();
-  }
   res.json({
     id: task.id,
     title: task.title,
@@ -452,7 +467,7 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     completedAt: task.completedAt,
     user: task.user,
     assignee: task.assignee ? { id: task.assignee.id, email: task.assignee.email } : null,
-    isOverdue,
+    isOverdue: computeIsOverdue(task),
   });
 });
 
