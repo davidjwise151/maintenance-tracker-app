@@ -14,6 +14,13 @@ beforeAll(async () => {
   await request(app)
     .post('/api/auth/register')
     .send({ email: 'admin2@example.com', password: 'Test1234!', role: 'admin' });
+  // Force admin role in DB (for test reliability)
+  const userRepo = AppDataSource.getRepository(require('../entity/User').User);
+  const adminUser = await userRepo.findOneBy({ email: 'admin2@example.com' });
+  if (adminUser && adminUser.role !== 'admin') {
+    adminUser.role = 'admin';
+    await userRepo.save(adminUser);
+  }
   const adminLogin = await request(app)
     .post('/api/auth/login')
     .send({ email: 'admin2@example.com', password: 'Test1234!' });
@@ -48,6 +55,11 @@ describe('Task Assignment & Permissions', () => {
     const usersRes = await request(app)
       .get('/api/users')
       .set('Authorization', `Bearer ${adminToken}`);
+    if (usersRes.statusCode !== 200) {
+      console.error('GET /api/users failed:', usersRes.statusCode, usersRes.body);
+    }
+    expect(usersRes.statusCode).toBe(200);
+    expect(usersRes.body).toHaveProperty('users');
     const user2 = usersRes.body.users.find((u: any) => u.email === 'user2@example.com');
     expect(user2).toBeDefined();
     // Assign user2 to the task

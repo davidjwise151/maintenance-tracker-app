@@ -6,7 +6,7 @@ const config = {
     "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.json" }],
   },
   testMatch: ["**/src/tests/**/*.test.ts"],
-  setupFilesAfterEnv: ["<rootDir>/src/tests/testSetup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/src/tests/testSetup.js"],
 };
 
 module.exports = config;

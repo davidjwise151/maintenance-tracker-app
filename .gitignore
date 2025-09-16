@@ -16,3 +16,4 @@ backend/dev.db.bak
 
 seed-remote.sh
 NOTES.txt
+coverage/
