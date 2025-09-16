@@ -78,8 +78,8 @@ export async function seedDatabase() {
     // Renovation
     { title: 'Paint hallway', description: 'Repaint main hallway walls.', status: 'Pending', category: 'Renovation', dueDate: now + 432000000, user: users[3], assignee: users[1] },
 
-    // Inspection
-    { title: 'Check plumbing', description: 'Inspect pipes for leaks.', status: 'Overdue', category: 'Inspection', dueDate: now - 86400000, user: users[4], assignee: users[2] },
+  // Inspection (Overdue)
+  { title: 'Check plumbing', description: 'Inspect pipes for leaks.', status: 'Pending', category: 'Inspection', dueDate: now - 86400000, user: users[4], assignee: users[2] },
 
     // More variety
     { title: 'Replace light bulbs', description: 'Replace all burnt out bulbs.', status: 'Pending', category: 'Maintenance', dueDate: now + 777600000, user: users[5], assignee: users[3] },
@@ -87,7 +87,11 @@ export async function seedDatabase() {
     { title: 'Roof inspection', description: 'Annual roof check.', status: 'Completed', category: 'Inspection', completedAt: now - 604800000, dueDate: now - 604800000, user: users[1], assignee: admins[0] },
     { title: 'Fire drill', description: 'Quarterly fire drill.', status: 'Accepted', category: 'Safety', dueDate: now + 345600000, user: users[2], assignee: admins[1] },
     { title: 'Lobby renovation', description: 'Renovate lobby area.', status: 'In Progress', category: 'Renovation', dueDate: now + 1209600000, user: users[3], assignee: users[5] },
-    { title: 'Basement cleaning', description: 'Deep clean basement.', status: 'Overdue', category: 'Cleaning', dueDate: now - 172800000, user: users[4], assignee: users[1] },
+  { title: 'Basement cleaning', description: 'Deep clean basement.', status: 'In-Progress', category: 'Cleaning', dueDate: now - 172800000, user: users[4], assignee: users[1] },
+  // More overdue tasks for reminders testing
+  { title: 'Overdue Safety Inspection', description: 'Missed annual safety check.', status: 'Accepted', category: 'Safety', dueDate: now - 259200000, user: users[1], assignee: users[3] },
+  { title: 'Overdue HVAC Filter', description: 'Forgotten filter replacement.', status: 'Pending', category: 'Maintenance', dueDate: now - 345600000, user: admins[0], assignee: users[2] },
+  { title: 'Overdue Painting', description: 'Missed painting schedule.', status: 'Pending', category: 'Renovation', dueDate: now - 604800000, user: users[3], assignee: users[1] },
   ];
 
   for (const data of tasksData) {
