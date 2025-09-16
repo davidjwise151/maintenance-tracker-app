@@ -30,7 +30,7 @@ export function authenticateJWT(req: Request, res: Response, next: NextFunction)
     (req as any).user = payload;
     next();
   } catch {
-    res.sendStatus(403);
+    res.sendStatus(401);
   }
 }
 

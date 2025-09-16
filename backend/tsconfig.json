@@ -8,6 +8,10 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "lib": ["es2016", "dom"],
-  }
+    "types": ["node", "jest"]
+  },
+  "exclude": [
+    "node_modules",
+    "src/tests"
+  ]
 }

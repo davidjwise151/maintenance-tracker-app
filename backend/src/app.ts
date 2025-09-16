@@ -1,69 +1,76 @@
 import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
+import express, { Request } from 'express';
 import authRoutes from "./routes/auth";
 import tasksRoutes from "./routes/tasks";
 import usersRoutes from "./routes/users";
 import { authenticateJWT } from "./middleware/auth";
+import seedRouter from "./routes/seed";
 
 /**
- * Main Express application setup.
- * - Registers middleware for CORS and JSON parsing
- * - Mounts authentication and task routes
+ * Main Express application setup for Maintenance Tracker API.
+ *
+ * - Registers CORS and JSON middleware
+ * - Mounts authentication, user, task, and seed routes
  * - Provides test and protected endpoints
+ *
+ * CORS:
+ *   - By default, allows localhost (any port) and *.vercel.app for dev and preview/prod
+ *   - If ALLOWED_ORIGINS env is set, uses those (comma-separated, supports regex: prefix)
+ *   - Allows credentials and Authorization header for JWT auth
  */
+
 const app = express();
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://maintenance-tracker-app.vercel.app',
-  /^https:\/\/maintenance-tracker-app-git-.*\.vercel\.app$/
+// --- CORS CONFIGURATION ---
+const allowedOriginPatterns = [
+  /^https:\/\/.*\.vercel\.app$/,
+  /^http:\/\/localhost:\d+$/,
+  /^http:\/\/127\.0\.0\.1:\d+$/
 ];
+const envAllowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin =>
+      origin.startsWith('regex:') ? new RegExp(origin.replace('regex:', '')) : origin
+    )
+  : allowedOriginPatterns;
 
-// Enable CORS for allowed origins and credentials
-app.use(cors({
-  origin: (origin, callback) => {
-    const isAllowed = !origin || allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin));
-    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
-  },
-  credentials: true
-}));
+// CORS middleware: allows only trusted origins and required headers
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const isAllowed = origin && envAllowedOrigins.some(pattern =>
+    typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
+  );
+  if (isAllowed && origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  // Allow all methods needed for RESTful APIs and future extensibility
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, x-seed-secret, Authorization');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
-// Parse JSON request bodies
 app.use(express.json());
-
-// Mount authentication routes
 app.use("/api/auth", authRoutes);
-// Mount users routes
 app.use("/api/users", usersRoutes);
+app.use("/api/tasks", tasksRoutes);
+app.use("/api/seed", seedRouter);
 
-/**
- * @route   GET /api/protected
- * @desc    Example protected route, requires valid JWT
- * @access  Private
- * Uses custom AuthenticatedRequest type to access user info from JWT.
- */
-interface AuthenticatedRequest extends express.Request {
-  user?: any; // Replace 'any' with your actual user type if available
+// Custom request type for JWT-authenticated routes
+interface AuthenticatedRequest extends Request {
+  user?: { id: string; email: string; role: string };
 }
 
-// Protected route example
+// Example protected route, requires valid JWT
 app.get("/api/protected", authenticateJWT, (req: AuthenticatedRequest, res) => {
   res.json({ message: "This is a protected route", user: req.user });
 });
 
-/**
- * @route   GET /api/hello
- * @desc    Simple hello world endpoint
- * @access  Public
- * Used for testing backend connectivity.
- */
+// Simple hello world endpoint for backend connectivity testing
 app.get("/api/hello", (req, res) => {
   res.json({ message: 'Hello from backend!' });
 });
 
-// Mount tasks routes
-app.use("/api/tasks", tasksRoutes);
-
-// Export the Express app for use in server startup and testing
 export default app;

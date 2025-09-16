@@ -13,34 +13,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ userRole }) => {
   const [permissionError, setPermissionError] = useState<string>("");
   const toastManager = useContext(ToastManagerContext);
 
+  // Centralized fetchUsers function
+  const fetchUsers = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setPermissionError("");
+    const token = sessionStorage.getItem("token");
+    const apiBase = process.env.REACT_APP_API_URL || "";
+    try {
+      const res = await fetch(`${apiBase}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 403) {
+        setPermissionError("You do not have permission to view users. Please log in as an admin.");
+        setUsers([]);
+        return;
+      }
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const data = await res.json();
+      setUsers(data.users || []);
+    } catch (err) {
+      toastManager?.showToast("Error fetching users: " + String(err), "error");
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, [toastManager]);
+
+  // Only fetch users on mount and when userRole changes to admin
   useEffect(() => {
     if (userRole === "admin") {
-      const fetchUsers = async () => {
-        setLoading(true);
-        setPermissionError("");
-        const token = sessionStorage.getItem("token");
-        const apiBase = process.env.REACT_APP_API_URL || "";
-        try {
-          const res = await fetch(`${apiBase}/api/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.status === 403) {
-            setPermissionError("You do not have permission to view users. Please log in as an admin.");
-            setUsers([]);
-            return;
-          }
-          if (!res.ok) throw new Error("Failed to fetch users");
-          const data = await res.json();
-          setUsers(data.users || []);
-        } catch (err) {
-          toastManager?.showToast("Error fetching users: " + String(err), "error");
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchUsers();
+      fetchUsers(true); // show spinner only on initial load
     }
-  }, [userRole, toastManager]);
+  }, [userRole, fetchUsers]);
 
   // Edit user role
   const handleEditRole = async (userId: string) => {
@@ -60,22 +63,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ userRole }) => {
       toastManager?.showToast("Role updated!", "success");
       setEditUserId("");
       setEditRole("");
-      // Refetch users after role update
-      if (userRole === "admin") {
-        setLoading(true);
-        try {
-          const res = await fetch(`${apiBase}/api/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!res.ok) throw new Error("Failed to fetch users");
-          const data = await res.json();
-          setUsers(data.users || []);
-        } catch (err) {
-          toastManager?.showToast("Error fetching users: " + String(err), "error");
-        } finally {
-          setLoading(false);
-        }
-      }
+      // Optimistically update local state
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: editRole } : u));
+      // Sync with backend in background, no spinner
+      fetchUsers(false);
     } catch (err) {
       toastManager?.showToast("Error updating role: " + String(err), "error");
     }
@@ -91,24 +82,26 @@ const UserManagement: React.FC<UserManagementProps> = ({ userRole }) => {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to delete user");
-      toastManager?.showToast("User deleted!", "success");
-      // Refetch users after deletion
-      if (userRole === "admin") {
-        setLoading(true);
+      if (!res.ok) {
+        let errorMsg = "Failed to delete user";
         try {
-          const res = await fetch(`${apiBase}/api/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!res.ok) throw new Error("Failed to fetch users");
-          const data = await res.json();
-          setUsers(data.users || []);
-        } catch (err) {
-          toastManager?.showToast("Error fetching users: " + String(err), "error");
-        } finally {
-          setLoading(false);
-        }
+          const errorData = await res.json();
+          if (res.status === 403 && errorData?.error === "Cannot delete admin users.") {
+            errorMsg = "Cannot delete admin users. Please change their role first.";
+          } else if (res.status === 500 && errorData?.error?.includes("FOREIGN KEY constraint failed")) {
+            errorMsg = "Cannot delete user: user is referenced by other records (e.g., tasks).";
+          } else if (errorData?.error) {
+            errorMsg = errorData.error;
+          }
+        } catch {}
+        toastManager?.showToast(errorMsg, "error");
+        return;
       }
+      toastManager?.showToast("User deleted!", "success");
+      // Optimistically remove user from UI
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      // Sync with backend in background, no spinner
+      fetchUsers(false);
     } catch (err) {
       toastManager?.showToast("Error deleting user: " + String(err), "error");
     }

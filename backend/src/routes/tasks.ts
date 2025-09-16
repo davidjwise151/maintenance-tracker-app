@@ -54,7 +54,6 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   await taskRepo.save(task);
   // Audit log for admin or owner assignment
   const actor = jwtUser;
-  console.log(`[AUDIT] ${actor.role === 'admin' ? 'Admin' : 'Owner'} ${actor.email} (${actor.id}) assigned task ${task.title} (${task.id}) to ${assignee.email} (${assignee.id}) at ${new Date().toISOString()}`);
   res.json({
     id: task.id,
     title: task.title,
@@ -164,7 +163,7 @@ router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
   await taskRepo.remove(task);
   // Audit log for admin or owner deletion
   const actor = jwtUser;
-  console.log(`[AUDIT] ${actor.role === 'admin' ? 'Admin' : 'Owner'} ${actor.email} (${actor.id}) deleted task ${task.title} (${task.id}) at ${new Date().toISOString()}`);
+  // Audit logging removed for production
   res.json({ success: true });
 });
 
