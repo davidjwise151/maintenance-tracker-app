@@ -1,32 +1,39 @@
-
 import 'dotenv/config';
-import express from 'express';
+import express, { Request } from 'express';
 import authRoutes from "./routes/auth";
 import tasksRoutes from "./routes/tasks";
 import usersRoutes from "./routes/users";
 import { authenticateJWT } from "./middleware/auth";
 import seedRouter from "./routes/seed";
 
+/**
+ * Main Express application setup for Maintenance Tracker API.
+ *
+ * - Registers CORS and JSON middleware
+ * - Mounts authentication, user, task, and seed routes
+ * - Provides test and protected endpoints
+ *
+ * CORS:
+ *   - By default, allows localhost (any port) and *.vercel.app for dev and preview/prod
+ *   - If ALLOWED_ORIGINS env is set, uses those (comma-separated, supports regex: prefix)
+ *   - Allows credentials and Authorization header for JWT auth
+ */
+
 const app = express();
 
 // --- CORS CONFIGURATION ---
-// Allow only trusted origins: local dev (localhost) and Vercel preview/prod deployments
 const allowedOriginPatterns = [
   /^https:\/\/.*\.vercel\.app$/,
   /^http:\/\/localhost:\d+$/,
   /^http:\/\/127\.0\.0\.1:\d+$/
 ];
-
-// If ALLOWED_ORIGINS env is set, use those (comma-separated, supports regex: prefix)
 const envAllowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => {
-      if (origin.startsWith('regex:')) {
-        return new RegExp(origin.replace('regex:', ''));
-      }
-      return origin;
-    })
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin =>
+      origin.startsWith('regex:') ? new RegExp(origin.replace('regex:', '')) : origin
+    )
   : allowedOriginPatterns;
 
+// CORS middleware: allows only trusted origins and required headers
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const isAllowed = origin && envAllowedOrigins.some(pattern =>
@@ -50,14 +57,17 @@ app.use("/api/users", usersRoutes);
 app.use("/api/tasks", tasksRoutes);
 app.use("/api/seed", seedRouter);
 
-interface AuthenticatedRequest extends express.Request {
-  user?: any;
+// Custom request type for JWT-authenticated routes
+interface AuthenticatedRequest extends Request {
+  user?: { id: string; email: string; role: string };
 }
 
+// Example protected route, requires valid JWT
 app.get("/api/protected", authenticateJWT, (req: AuthenticatedRequest, res) => {
   res.json({ message: "This is a protected route", user: req.user });
 });
 
+// Simple hello world endpoint for backend connectivity testing
 app.get("/api/hello", (req, res) => {
   res.json({ message: 'Hello from backend!' });
 });
