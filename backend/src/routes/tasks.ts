@@ -35,26 +35,30 @@ router.put('/:id/assign', authenticateJWT, async (req: Request, res: Response) =
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
   }
+  // Only admins can assign or reassign tasks
+  if (userRole !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Only admins can assign or reassign tasks.' });
+  }
+  if (!assigneeId) {
+    return res.status(400).json({ error: 'Missing assigneeId in request body.' });
+  }
   const taskRepo = AppDataSource.getRepository(Task);
   const userRepo = AppDataSource.getRepository(User);
   const task = await taskRepo.findOne({ where: { id }, relations: ['user', 'assignee'] });
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
   }
-  // Only admin or owner can assign
-  if (userRole !== 'admin' && (!task.user || task.user.id !== userId)) {
-    return res.status(403).json({ error: 'Forbidden: Only admin or task owner can assign.' });
-  }
   const assignee = await userRepo.findOneBy({ id: assigneeId });
   if (!assignee) {
     return res.status(400).json({ error: 'Assignee not found.' });
   }
+  if (task.assignee && task.assignee.id === assignee.id) {
+    return res.status(400).json({ error: 'User is already assigned to this task.' });
+  }
   task.assignee = assignee;
   task.status = 'Pending';
   await taskRepo.save(task);
-  // Audit log for admin or owner assignment
-  const actor = jwtUser;
-  res.json({
+  return res.status(200).json({
     id: task.id,
     title: task.title,
     category: task.category,
@@ -151,19 +155,20 @@ router.delete('/:id', authenticateJWT, async (req: Request, res: Response) => {
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized: No user ID in token.' });
   }
+  // Reject malformed/unknown roles
+  if (userRole !== 'admin' && userRole !== 'user') {
+    return res.status(403).json({ error: 'Forbidden: Unknown or malformed user role.' });
+  }
   const taskRepo = AppDataSource.getRepository(Task);
   const task = await taskRepo.findOne({ where: { id }, relations: ['user'] });
   if (!task) {
     return res.status(404).json({ error: 'Task not found.' });
   }
-  // Only admin or owner can delete
+  // Only admin or owner (creator) can delete
   if (userRole !== 'admin' && (!task.user || task.user.id !== userId)) {
     return res.status(403).json({ error: 'Forbidden: Only admin or task owner can delete.' });
   }
   await taskRepo.remove(task);
-  // Audit log for admin or owner deletion
-  const actor = jwtUser;
-  // Audit logging removed for production
   res.json({ success: true });
 });
 
@@ -385,6 +390,7 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
   // Get userId from JWT payload (added by authenticateJWT middleware)
   const jwtUser = (req as any).user;
   const userId = jwtUser && jwtUser.id;
+  const userRole = jwtUser && jwtUser.role;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized: No user ID in token." });
   }
@@ -398,14 +404,16 @@ router.post("/", authenticateJWT, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "User not found." });
   }
 
-  // Find assignee if provided
+  // Only admins can assign at creation. If not admin, force assignee to self.
   let assignee: User | undefined = undefined;
-  if (assigneeId) {
+  if (userRole === 'admin' && assigneeId) {
     const foundAssignee = await userRepo.findOneBy({ id: assigneeId });
     if (!foundAssignee) {
       return res.status(400).json({ error: "Assignee not found." });
     }
     assignee = foundAssignee;
+  } else {
+    assignee = user;
   }
 
   // If status is missing, default to 'Pending'.
