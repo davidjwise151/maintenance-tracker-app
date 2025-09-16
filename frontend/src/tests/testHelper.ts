@@ -1,3 +1,33 @@
+// Helper type for MaintenanceTaskLog tests
+export type Task = {
+  id: string;
+  title: string;
+  status: string;
+  category: string;
+  dueDate: string | null;
+  assignee: any;
+};
+
+import React from 'react';
+import { render, act } from '@testing-library/react';
+
+/**
+ * Helper to render a component with mocked tasks (for DRY tests)
+ */
+export async function renderWithMockedTasks(
+  Component: React.ElementType,
+  tasks: Task[]
+) {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: async () => ({ tasks }),
+    } as unknown as Response)
+  );
+  await act(async () => {
+    render(React.createElement(Component));
+  });
+}
 
 import { screen, fireEvent } from '@testing-library/react';
 

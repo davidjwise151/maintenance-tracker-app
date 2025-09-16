@@ -53,7 +53,7 @@ describe('CreateTaskForm', () => {
 
   it('validates required fields', async () => {
     render(<CreateTaskForm />);
-    fireEvent.click(screen.getByRole('button', { name: /create/i }));
+    await fillAndSubmitCreateTaskForm({ title: '', status: '' });
     expect(await screen.findByText(/title is required/i)).toBeInTheDocument();
   });
 
