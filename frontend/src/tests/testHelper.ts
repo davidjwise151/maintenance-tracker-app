@@ -1,4 +1,18 @@
 /**
+ * Helper for validateTaskForm error assertion.
+ */
+import { validateTaskForm, TaskFormFields } from "../validateTaskForm";
+export function expectError(base: TaskFormFields, overrides: Partial<TaskFormFields>, errorMsg: string) {
+  expect(validateTaskForm({ ...base, ...overrides })).toBe(errorMsg);
+}
+
+/**
+ * Helper for validateTaskForm valid assertion.
+ */
+export function expectValid(base: TaskFormFields, overrides: Partial<TaskFormFields> = {}) {
+  expect(validateTaskForm({ ...base, ...overrides })).toBeNull();
+}
+/**
  * Helper to assert the empty state is present in the UI.
  */
 export async function expectEmptyState() {
@@ -33,13 +47,6 @@ export async function fillAndSubmitForm(fields: Record<string, string>, submitBu
   fireEvent.click(screen.getByRole('button', { name: submitButton }));
 }
 
-/**
- * Generic helper to assert an element with text is present.
- */
-export async function expectElementPresent(text: string | RegExp) {
-  const matches = await screen.findAllByText(text);
-  expect(matches.length).toBeGreaterThan(0);
-}
 
 /**
  * Helper to mock window.confirm.
