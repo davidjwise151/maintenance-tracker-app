@@ -200,5 +200,5 @@ export function fillAndSubmitCreateTaskForm(data: {
   // Debug: log selected value
   // eslint-disable-next-line no-console
   console.log('Status select value before submit:', (statusSelect as HTMLSelectElement).value);
-  fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+  fireEvent.click(screen.getAllByRole('button', { name: /create task/i })[0]);
 }

@@ -1,10 +1,11 @@
-// Increase timeout for long-running test
+// Increase timeout for long-running tests
 jest.setTimeout(20000);
 import React from 'react';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CreateTaskForm from '../CreateTaskForm';
 import { ToastManagerContext } from '../ToastManager';
+import { fillAndSubmitCreateTaskForm } from './testHelper';
 
 describe('CreateTaskForm', () => {
   let toastSpy: jest.Mock;
@@ -57,7 +58,6 @@ describe('CreateTaskForm', () => {
   });
 
   it('handles all combinations of category and assignee', async () => {
-    jest.setTimeout(20000);
     const users = [
       { id: 'u1', email: 'user1@example.com' },
       { id: 'u2', email: 'user2@example.com' },
@@ -69,11 +69,12 @@ describe('CreateTaskForm', () => {
     for (const category of categories) {
       for (const user of users) {
         renderWithToast(<CreateTaskForm />);
-        fireEvent.change(screen.getByLabelText(/title/i), { target: { value: `Test ${category} ${user.email}` } });
-        fireEvent.change(screen.getByLabelText(/status/i), { target: { value: 'Pending' } });
-        fireEvent.change(screen.getByLabelText(/category/i), { target: { value: category } });
-        fireEvent.change(screen.getByLabelText(/assignee/i), { target: { value: user.id } });
-  fireEvent.click(screen.getAllByRole('button', { name: /create/i })[0]);
+        fillAndSubmitCreateTaskForm({
+          title: `Test ${category} ${user.email}`,
+          status: 'Pending',
+          category,
+          assigneeId: user.id
+        });
         await waitFor(() => expect(toastSpy).not.toHaveBeenCalledWith(expect.any(String), 'error'));
         jest.clearAllMocks();
       }
