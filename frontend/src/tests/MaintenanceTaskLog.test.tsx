@@ -11,18 +11,12 @@ import {
   getSearchButton,
   expectTaskPresent,
   mockConfirm,
-  setTaskLogFilters // <-- import the new helper
+  setTaskLogFilters,
+  expectEmptyState,
+  expectErrorState
 } from './testHelper';
 
-/**
- * Helper to change filters in MaintenanceTaskLog.
- */
-// function setTaskLogFilters({ category, status, assignee }: { category?: string; status?: string; assignee?: string }) {
-//   if (category) fireEvent.change(screen.getByLabelText(/category/i), { target: { value: category } });
-//   if (status) fireEvent.change(screen.getByLabelText(/status/i), { target: { value: status } });
-//   const assigneeInput = screen.queryByLabelText(/assignee/i);
-//   if (assignee && assigneeInput) fireEvent.change(assigneeInput, { target: { value: assignee } });
-// }
+
 
 describe('MaintenanceTaskLog', () => {
   it('filters by category and status', async () => {
@@ -88,14 +82,12 @@ describe('MaintenanceTaskLog', () => {
 
   it('shows empty state when no tasks', async () => {
     await renderTaskLogWithTasks([]);
-    expect(await screen.findByText(/no tasks/i)).toBeInTheDocument();
+    await expectEmptyState();
   });
 
   it('shows error state when fetch fails', async () => {
     await renderTaskLogWithError();
-    const errorElements = await screen.findAllByText(/error/i);
-    expect(errorElements.length).toBeGreaterThan(0);
-    expect(screen.getByText(/error loading tasks/i)).toBeInTheDocument();
+    await expectErrorState();
   });
 
   it('displays a task with an assignee', async () => {
@@ -136,7 +128,7 @@ describe('MaintenanceTaskLog - additional coverage', () => {
       { id: 'bad2', title: null, status: undefined, category: 123 }
     ];
     await renderTaskLogWithTasks(badTasks as any);
-    expect(screen.getByText(/no tasks/i)).toBeInTheDocument();
+    await expectEmptyState();
   });
 
   it('handles filter by assignee', async () => {
@@ -179,13 +171,13 @@ describe('MaintenanceTaskLog - additional coverage', () => {
 
   it('handles empty tasks array', async () => {
     await renderTaskLogWithTasks([]);
-    expect(screen.getByText(/no tasks/i)).toBeInTheDocument();
+    await expectEmptyState();
   });
 
   it('handles error boundary on fetch', async () => {
     global.fetch = jest.fn(() => Promise.reject(new Error('Network error')));
     await renderTaskLogWithError();
-    expect(screen.getByText(/error loading tasks/i)).toBeInTheDocument();
+    await expectErrorState();
   });
 
   it('handles all filter fields', async () => {

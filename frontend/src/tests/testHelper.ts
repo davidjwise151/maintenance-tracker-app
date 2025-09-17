@@ -1,4 +1,19 @@
 /**
+ * Helper to assert the empty state is present in the UI.
+ */
+export async function expectEmptyState() {
+  expect(await screen.findByText(/no tasks/i)).toBeInTheDocument();
+}
+
+/**
+ * Helper to assert the error state is present in the UI.
+ */
+export async function expectErrorState() {
+  const errorElements = await screen.findAllByText(/error/i);
+  expect(errorElements.length).toBeGreaterThan(0);
+  expect(screen.getByText(/error loading tasks/i)).toBeInTheDocument();
+}
+/**
  * --------------------
  * General Test Helpers
  * --------------------
