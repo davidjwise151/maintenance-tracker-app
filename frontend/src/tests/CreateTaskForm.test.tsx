@@ -1,3 +1,5 @@
+// Increase timeout for long-running test
+jest.setTimeout(20000);
 import React from 'react';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';

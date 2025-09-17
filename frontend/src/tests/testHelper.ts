@@ -40,6 +40,15 @@ export function mockConfirm(value: boolean) {
  */
 
 /**
+ * Helper to fill and submit the AuthForm using Enter key.
+ */
+export async function submitAuthFormWithEnter({ email, password }: { email: string; password: string }) {
+  fireEvent.change(screen.getByLabelText(/email/i), { target: { value: email } });
+  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: password } });
+  fireEvent.keyDown(screen.getByLabelText(/password/i), { key: 'Enter', code: 'Enter' });
+}
+
+/**
  * Helper to fill and submit the AuthForm for login/register tests.
  */
 export async function fillAndSubmitAuthForm({ email, password, mode = 'login' }: { email: string; password: string; mode?: 'login' | 'register' }) {

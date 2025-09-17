@@ -5,7 +5,8 @@ import AuthForm from '../AuthForm';
 import {
   fillAndSubmitAuthForm,
   switchAuthMode,
-  expectErrorMessage
+  expectErrorMessage,
+  submitAuthFormWithEnter
 } from './testHelper';
 
 describe('AuthForm', () => {
@@ -34,9 +35,7 @@ describe('AuthForm', () => {
   });
 
   it('submits form with Enter key', async () => {
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'Test1234!' } });
-    fireEvent.keyDown(screen.getByLabelText(/password/i), { key: 'Enter', code: 'Enter' });
+    await submitAuthFormWithEnter({ email: 'user@example.com', password: 'Test1234!' });
     // Should submit or at least not throw
   });
 
