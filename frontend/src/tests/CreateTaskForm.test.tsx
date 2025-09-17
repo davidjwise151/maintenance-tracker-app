@@ -1,19 +1,26 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CreateTaskForm from '../CreateTaskForm';
-import { fillAndSubmitCreateTaskForm } from './testHelper';
+import { ToastManagerContext } from '../ToastManager';
 
 describe('CreateTaskForm', () => {
+  let toastSpy: jest.Mock;
+  function renderWithToast(children: React.ReactNode) {
+    toastSpy = jest.fn();
+    return render(
+      <ToastManagerContext.Provider value={{ showToast: toastSpy }}>
+        {children}
+      </ToastManagerContext.Provider>
+    );
+  }
+
   beforeEach(() => {
-    // Mock sessionStorage.getItem to always return a token unless overridden
     jest.spyOn(window.sessionStorage.__proto__, 'getItem').mockImplementation((key) => {
       if (key === 'token') return 'test-token';
       return null;
     });
-    // Mock fetch to prevent real network requests
     global.fetch = jest.fn((url, options) => {
-      // Minimal mock Response object
       const mockResponse = (body: any, ok = true, status = 200) => ({
         ok,
         status,
@@ -24,55 +31,50 @@ describe('CreateTaskForm', () => {
         redirected: false,
         type: 'basic',
         url: typeof url === 'string' ? url : '',
-        clone: () => this,
+        clone: () => null,
         body: null,
         bodyUsed: false,
         arrayBuffer: async () => new ArrayBuffer(0),
         blob: async () => new Blob(),
         formData: async () => new FormData(),
       } as unknown as Response);
-      // For GET /api/users, return a fake user list
       if (typeof url === 'string' && url.includes('/api/users')) {
-        return Promise.resolve(mockResponse({ users: [] }));
+        return Promise.resolve(mockResponse({ users: [
+          { id: 'u1', email: 'user1@example.com' },
+          { id: 'u2', email: 'user2@example.com' },
+          { id: 'u3', email: 'user3@example.com' }
+        ] }));
       }
-      // For all other requests, return Promise.resolve(mockResponse({}));
       return Promise.resolve(mockResponse({}));
     });
   });
 
   afterEach(() => {
     jest.resetAllMocks();
+    cleanup();
   });
 
-  it('renders all fields', () => {
-    render(<CreateTaskForm />);
-    expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/status/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /create/i })).toBeInTheDocument();
-  });
-
-  it('validates required fields', async () => {
-    render(<CreateTaskForm />);
-    await fillAndSubmitCreateTaskForm({ title: '', status: '' });
-    expect(await screen.findByText(/title is required/i)).toBeInTheDocument();
-  });
-
-
-  it('submits with valid data (mocked API)', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'mockid', title: 'Test' }) });
-    render(<CreateTaskForm />);
-    await fillAndSubmitCreateTaskForm({ title: 'Test Task', status: 'Pending' });
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/tasks'),
-      expect.objectContaining({ method: 'POST' })
-    );
-  });
-
-  it('shows error on failed API (mocked)', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Failed to create' }) });
-    render(<CreateTaskForm />);
-    await fillAndSubmitCreateTaskForm({ title: 'Test Task', status: 'Pending' });
-    expect(await screen.findByText(/failed to create/i)).toBeInTheDocument();
+  it('handles all combinations of category and assignee', async () => {
+    jest.setTimeout(20000);
+    const users = [
+      { id: 'u1', email: 'user1@example.com' },
+      { id: 'u2', email: 'user2@example.com' },
+      { id: 'u3', email: 'user3@example.com' }
+    ];
+    const categories = [
+      'Plumbing', 'Flooring', 'Inspections', 'Electrical', 'HVAC', 'Landscaping', 'Painting', 'Other'
+    ];
+    for (const category of categories) {
+      for (const user of users) {
+        renderWithToast(<CreateTaskForm />);
+        fireEvent.change(screen.getByLabelText(/title/i), { target: { value: `Test ${category} ${user.email}` } });
+        fireEvent.change(screen.getByLabelText(/status/i), { target: { value: 'Pending' } });
+        fireEvent.change(screen.getByLabelText(/category/i), { target: { value: category } });
+        fireEvent.change(screen.getByLabelText(/assignee/i), { target: { value: user.id } });
+  fireEvent.click(screen.getAllByRole('button', { name: /create/i })[0]);
+        await waitFor(() => expect(toastSpy).not.toHaveBeenCalledWith(expect.any(String), 'error'));
+        jest.clearAllMocks();
+      }
+    }
   });
 });

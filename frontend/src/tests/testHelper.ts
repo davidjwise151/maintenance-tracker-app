@@ -160,9 +160,36 @@ export function setTaskLogFilters({ category, status, assignee }: { category?: s
 /**
  * Helper to fill and submit the CreateTaskForm.
  */
-export function fillAndSubmitCreateTaskForm(data: { title: string; status: string }) {
-  const { title, status } = data;
+export function fillAndSubmitCreateTaskForm(data: {
+  title: string;
+  status: string;
+  dueDate?: string;
+  category?: string;
+  assigneeId?: string;
+}) {
+  const { title, status, dueDate, category, assigneeId } = data;
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: title } });
-  fireEvent.change(screen.getByLabelText(/status/i), { target: { value: status } });
+  if (dueDate !== undefined) {
+    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: dueDate } });
+  }
+  if (category !== undefined) {
+    const select = screen.getByLabelText(/category/i);
+    fireEvent.change(select, { target: { value: category } });
+  // Debug: log selected value
+  // eslint-disable-next-line no-console
+  console.log('Category select value before submit:', (select as HTMLSelectElement).value);
+  }
+  if (assigneeId !== undefined) {
+    const select = screen.getByLabelText(/assignee/i);
+    fireEvent.change(select, { target: { value: assigneeId } });
+  // Debug: log selected value
+  // eslint-disable-next-line no-console
+  console.log('Assignee select value before submit:', (select as HTMLSelectElement).value);
+  }
+  const statusSelect = screen.getByLabelText(/status/i);
+  fireEvent.change(statusSelect, { target: { value: status } });
+  // Debug: log selected value
+  // eslint-disable-next-line no-console
+  console.log('Status select value before submit:', (statusSelect as HTMLSelectElement).value);
   fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 }
