@@ -17,3 +17,4 @@ backend/dev.db.bak
 seed-remote.sh
 NOTES.txt
 coverage/
+ISSUE_49_PLAN.md

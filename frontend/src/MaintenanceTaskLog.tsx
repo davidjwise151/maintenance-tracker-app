@@ -5,8 +5,11 @@ import DatePicker from "react-datepicker";
 import "./styles/datepicker.css";
 import "./styles/modern-form.css";
 import "react-datepicker/dist/react-datepicker.css";
+import { useTasks } from "./hooks/useTasks";
 import CreateTaskForm from "./CreateTaskForm";
 import { ToastManagerContext } from "./ToastManager";
+import { useUsers } from "./hooks/useUsers";
+import { apiFetch } from "./utils/apiFetch";
 
 // Helper to check if current user is the assignee
 function isCurrentUserAssignee(assignee: any) {
@@ -18,48 +21,21 @@ function isCurrentUserAssignee(assignee: any) {
 
 // Dropdown for assigning a user to a task
 type AssignDropdownProps = { taskId: string; onAssigned: () => void };
+import { useTaskActions } from "./hooks/useTaskActions";
 const AssignDropdown: React.FC<AssignDropdownProps> = ({ taskId, onAssigned }) => {
-  const [users, setUsers] = useState<Array<{ id: string; email: string }>>([]);
+  const { users, loading: usersLoading, error: usersError } = useUsers();
   const [selectedUser, setSelectedUser] = useState("");
   const [loading, setLoading] = useState(false);
-  const toastManager = useContext(ToastManagerContext);
-
-  useEffect(() => {
-    // Fetch all users for assignment dropdown (with auth)
-    const apiBase = process.env.REACT_APP_API_URL || "";
-    const token = sessionStorage.getItem("token");
-    if (!token) return;
-    fetch(`${apiBase}/api/users`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.ok ? res.json() : Promise.resolve({ users: [] }))
-      .then(data => setUsers(data.users || []));
-  }, []);
+  const { assignTask } = useTaskActions();
 
   // Assign selected user to the task
   const handleAssign = () => {
     if (!selectedUser) return;
     setLoading(true);
-  const token = sessionStorage.getItem("token");
-    const apiBase = process.env.REACT_APP_API_URL || "";
-    fetch(`${apiBase}/api/tasks/${taskId}/assign`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify({ assigneeId: selectedUser })
-    })
-      .then(res => {
-        setLoading(false);
-        if (!res.ok) throw new Error("Failed to assign");
-        toastManager?.showToast("Task assigned!", "success");
-        onAssigned();
-      })
-      .catch(err => {
-        setLoading(false);
-        toastManager?.showToast("Error assigning: " + String(err), "error");
-      });
+    assignTask(taskId, selectedUser, () => {
+      setLoading(false);
+      onAssigned();
+    });
   };
 
   return (
@@ -124,15 +100,8 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   const toastManager = useContext(ToastManagerContext);
   const handleDelete = async (taskId: string) => {
     if (!window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
-    const token = sessionStorage.getItem("token");
-    const apiBase = process.env.REACT_APP_API_URL || "";
     try {
-      const res = await fetch(`${apiBase}/api/tasks/${taskId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
+      const res = await apiFetch(`/api/tasks/${taskId}`, { method: "DELETE" });
       const data = await res.json();
       if (res.status === 403) {
         toastManager?.showToast("You do not have permission to delete this task.", "error");
@@ -140,25 +109,39 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
       }
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
       toastManager?.showToast("Task deleted successfully!", "success");
-      // Remove deleted task from UI
-      setTasks(tasks.filter((t: any) => t.id !== taskId));
-      setTotal(total > 0 ? total - 1 : 0);
+      fetchTasks();
     } catch (err) {
       toastManager?.showToast("Error deleting task: " + String(err), "error");
     }
   };
 
-  // State for tasks and filter/search controls
-  const [tasks, setTasks] = useState([]);
-  const [error, setError] = useState("");
-  const [category, setCategory] = useState(""); // Filter by category (blank means All)
-  const [status, setStatus] = useState(""); // Filter by status (blank means All)
+  // Use useTasks for fetching, filtering, and paginating tasks
+  const {
+    tasks,
+    total,
+    error,
+    loading,
+    filters,
+    setFilters,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    fetchTasks,
+  } = useTasks();
+
+  // Helper setters for filter fields
+  const setCategory = (category: string) => setFilters({ ...filters, category });
+  const setStatus = (status: string) => setFilters({ ...filters, status });
+  const setFrom = (from: string) => setFilters({ ...filters, from });
+  const setTo = (to: string) => setFilters({ ...filters, to });
+  const setDueFrom = (dueFrom: string) => setFilters({ ...filters, dueFrom });
+  const setDueTo = (dueTo: string) => setFilters({ ...filters, dueTo });
+
+  // Remove unused local state for filters
+  // (category, status, from, to, dueFrom, dueTo, setSearchTrigger, searchTrigger)
+
   const statusOptions = ["Pending", "Accepted", "In-Progress", "Done"];
-  const [from, setFrom] = useState(""); // Filter by completed start date
-  const [to, setTo] = useState(""); // Filter by completed end date
-  const [dueFrom, setDueFrom] = useState(""); // Filter by due date start
-  const [dueTo, setDueTo] = useState(""); // Filter by due date end
-  // Maintenance categories for dropdown
   const categories = [
     "Plumbing",
     "Flooring",
@@ -169,82 +152,6 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
     "Painting",
     "Other"
   ];
-  const [page, setPage] = useState(1); // Pagination: current page
-  const [pageSize, setPageSize] = useState(25); // Pagination: page size (default 25)
-  const [total, setTotal] = useState(0); // Total number of results
-  const [searchTrigger, setSearchTrigger] = useState(0); // Used to trigger search on filter change
-  /**
-   * Fetch completed tasks from backend with filters and pagination.
-   * Updates tasks and total count in state.
-   */
-  const refreshTasks = () => { 
-    const params = new URLSearchParams();
-    if (category) params.append("category", category);
-    if (status) params.append("status", status);
-    // Completed date filter: 'from' is start of day, 'to' is end of day (inclusive)
-    if (from) {
-      const fromDate = parseDateInput(from);
-      if (fromDate) params.append("from", fromDate.getTime().toString());
-    }
-    if (to) {
-      const toDate = parseDateInput(to);
-      if (toDate) {
-        toDate.setHours(23, 59, 59, 999);
-        params.append("to", toDate.getTime().toString());
-      }
-    }
-    // Due date filter: 'dueFrom' is start of day, 'dueTo' is end of day (inclusive)
-    if (dueFrom) {
-      const dueFromDate = parseDateInput(dueFrom);
-      if (dueFromDate) params.append("dueFrom", dueFromDate.getTime().toString());
-    }
-    if (dueTo) {
-      const dueToDate = parseDateInput(dueTo);
-      if (dueToDate) {
-        dueToDate.setHours(23, 59, 59, 999);
-        params.append("dueTo", dueToDate.getTime().toString());
-      }
-    }
-    params.append("page", String(page));
-    params.append("pageSize", String(pageSize));
-
-  const token = sessionStorage.getItem("token");
-    const apiBase = process.env.REACT_APP_API_URL || "";
-  fetch(`${apiBase}/api/tasks?${params.toString()}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch completed tasks");
-        return res.json();
-      })
-      .then(data => {
-        setTasks(data.tasks || []);
-        setTotal(data.total || 0);
-        setError("");
-      })
-      .catch(err => {
-        setTasks([]);
-        setTotal(0);
-        setError("Error loading tasks. Please try again later.");
-        console.error(err);
-      });
-  };
-
-  // Refresh tasks only after search is triggered or pagination changes
-  useEffect(() => {
-    refreshTasks();
-    // Debug: log tasks after fetch
-    // This will log the tasks array every time it changes
-    // eslint-disable-next-line
-  }, [page, pageSize, searchTrigger]);
-
-  useEffect(() => {
-    if (tasks.length > 0) {
-      console.log('Fetched tasks:', tasks);
-    }
-  }, [tasks]);
 
   /**
    * Renders UI: filter form, results table, pagination, and toast notifications.
@@ -262,7 +169,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
   return (
     <div className="task-log-container task-log-contrast">
       {/* CreateTaskForm: triggers refresh on new task creation */}
-  <CreateTaskForm onTaskCreated={() => { refreshTasks(); if (refreshReminders) refreshReminders(); }} userRole={userRole} />
+  <CreateTaskForm onTaskCreated={() => { fetchTasks(); if (refreshReminders) refreshReminders(); }} userRole={userRole} />
       <h3 className="task-log-title">Maintenance Task Log</h3>
       {/* Results counter */}
       <div style={{ marginBottom: "0.5em", fontWeight: "bold", fontSize: "1.08em" }}>
@@ -274,26 +181,26 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
         onSubmit={e => {
           e.preventDefault();
           // Only validate logical range (from > to)
-          const fromDate = from ? parseDateInput(from) : null;
-          const toDate = to ? parseDateInput(to) : null;
+          const fromDate = filters.from ? parseDateInput(filters.from) : null;
+          const toDate = filters.to ? parseDateInput(filters.to) : null;
           if (fromDate && toDate && fromDate > toDate) {
             toastManager?.showToast("'From' date cannot be after 'To' date.", "error");
             return;
           }
-          const dueFromDate = dueFrom ? parseDateInput(dueFrom) : null;
-          const dueToDate = dueTo ? parseDateInput(dueTo) : null;
+          const dueFromDate = filters.dueFrom ? parseDateInput(filters.dueFrom) : null;
+          const dueToDate = filters.dueTo ? parseDateInput(filters.dueTo) : null;
           if (dueFromDate && dueToDate && dueFromDate > dueToDate) {
             toastManager?.showToast("'Due From' date cannot be after 'Due To' date.", "error");
             return;
           }
           setPage(1);
-          setSearchTrigger(searchTrigger + 1);
+          fetchTasks();
         }}
         className="task-log-filters task-log-filters-horizontal"
       >
         <div className="task-log-row-horizontal">
           <label className="task-log-label task-log-label-bold">Category</label>
-          <select className="task-log-select" value={category} onChange={e => setCategory(e.target.value)}>
+          <select className="task-log-select" value={filters.category || ""} onChange={e => setCategory(e.target.value)}>
             <option value="">All</option>
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
@@ -302,7 +209,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
         </div>
         <div className="task-log-row-horizontal">
           <label className="task-log-label task-log-label-bold">Status</label>
-          <select className="task-log-select" value={status} onChange={e => setStatus(e.target.value)}>
+          <select className="task-log-select" value={filters.status || ""} onChange={e => setStatus(e.target.value)}>
             <option value="">All</option>
               {statusOptions.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -312,52 +219,52 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
         <div className="task-log-row-horizontal">
           <label className="task-log-label task-log-label-bold">Completed From</label>
           <DatePicker
-            selected={from ? parseDateInput(from) : null}
+            selected={filters.from ? parseDateInput(filters.from) : null}
             onChange={(date: Date | null) => setFrom(date ? formatDateMMDDYYYY(date) : "")}
             dateFormat="MM/dd/yyyy"
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
             minDate={fiveYearsAgo()}
-            maxDate={to ? (parseDateInput(to) && parseDateInput(to)! < todayEnd() ? parseDateInput(to) || undefined : todayEnd()) : todayEnd()}
+            maxDate={filters.to ? (parseDateInput(filters.to) && parseDateInput(filters.to)! < todayEnd() ? parseDateInput(filters.to) || undefined : todayEnd()) : todayEnd()}
           />
         </div>
         <div className="task-log-row-horizontal">
           <label className="task-log-label task-log-label-bold">Completed To</label>
           <DatePicker
-            selected={to ? parseDateInput(to) : null}
+            selected={filters.to ? parseDateInput(filters.to) : null}
             onChange={(date: Date | null) => setTo(date ? formatDateMMDDYYYY(date) : "")}
             dateFormat="MM/dd/yyyy"
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
-            minDate={from ? (parseDateInput(from) && parseDateInput(from)! < todayEnd() ? parseDateInput(from) || undefined : fiveYearsAgo()) : fiveYearsAgo()}
+            minDate={filters.from ? (parseDateInput(filters.from) && parseDateInput(filters.from)! < todayEnd() ? parseDateInput(filters.from) || undefined : fiveYearsAgo()) : fiveYearsAgo()}
             maxDate={todayEnd()}
           />
         </div>
         <div className="task-log-row-horizontal">
           <label className="task-log-label task-log-label-bold">Due Date From</label>
           <DatePicker
-            selected={dueFrom ? parseDateInput(dueFrom) : null}
+            selected={filters.dueFrom ? parseDateInput(filters.dueFrom) : null}
             onChange={(date: Date | null) => setDueFrom(date ? formatDateMMDDYYYY(date) : "")}
             dateFormat="MM/dd/yyyy"
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
             minDate={fiveYearsAgo()}
-            maxDate={dueTo ? parseDateInput(dueTo) || undefined : fiveYearsFromNow()}
+            maxDate={filters.dueTo ? parseDateInput(filters.dueTo) || undefined : fiveYearsFromNow()}
           />
         </div>
         <div className="task-log-row-horizontal">
           <label className="task-log-label task-log-label-bold">Due Date To</label>
           <DatePicker
-            selected={dueTo ? parseDateInput(dueTo) : null}
+            selected={filters.dueTo ? parseDateInput(filters.dueTo) : null}
             onChange={(date: Date | null) => setDueTo(date ? formatDateMMDDYYYY(date) : "")}
             dateFormat="MM/dd/yyyy"
             placeholderText="MM/DD/YYYY"
             isClearable
             className="task-log-input"
-            minDate={dueFrom ? parseDateInput(dueFrom) || undefined : fiveYearsAgo()}
+            minDate={filters.dueFrom ? parseDateInput(filters.dueFrom) || undefined : fiveYearsAgo()}
             maxDate={fiveYearsFromNow()}
           />
         </div>
@@ -368,14 +275,9 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
             className="task-log-button"
             style={{ background: "#fff", color: "#1976d2", border: "1px solid #1976d2", minWidth: 160, height: 40 }}
             onClick={() => {
-              setCategory("");
-              setStatus("");
-              setFrom("");
-              setTo("");
-              setDueFrom("");
-              setDueTo("");
+              setFilters({});
               setPage(1);
-              setSearchTrigger(searchTrigger + 1);
+              fetchTasks();
             }}
           >
             Clear Filters
@@ -465,7 +367,8 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                   <td style={{ border: "1px solid #ccc", padding: "0.5em", whiteSpace: "nowrap" }}>
           {/* Assignment action: Only admin can assign if unassigned */}
           {userRole === "admin" && !task.assignee && (
-            <AssignDropdown taskId={task.id} onAssigned={() => setSearchTrigger(searchTrigger + 1)} />
+            // TODO: Refactor AssignDropdown onAssigned to use fetchTasks or similar if needed
+            <AssignDropdown taskId={task.id} onAssigned={fetchTasks} />
           )}
                     {/* Acceptance action: Button always visible if task.assignee and status Pending, but only enabled for assignee */}
                     {task.assignee && task.status === "Pending" && (
@@ -484,7 +387,7 @@ const MaintenanceTaskLog: React.FC<MaintenanceTaskLogProps> = ({ refreshReminder
                             .then(res => {
                               if (!res.ok) throw new Error("Failed to accept");
                               toastManager?.showToast("Task accepted!", "success");
-                              setSearchTrigger(searchTrigger + 1);
+                              fetchTasks();
                             })
                             .catch(err => {
                               toastManager?.showToast("Error accepting: " + String(err), "error");
