@@ -32,7 +32,10 @@ Maintainer is a modern web application built with React, Node.js, and TypeScript
 4. **Run the app locally:**
    - Backend: `npm run dev`
    - Frontend: `npm start`
-5. **Cloud Deployment:**
+5. **Testing:**
+   - Run tests: `npm test` (from root directory)
+   - Generate coverage: `npm run coverage`
+6. **Cloud Deployment:**
    - Backend: Render
    - Frontend: Vercel
 
