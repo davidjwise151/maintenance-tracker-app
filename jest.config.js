@@ -5,9 +5,14 @@ const tsJestTransformCfg = createDefaultPreset().transform;
 /** @type {import("jest").Config} **/
 module.exports = {
   preset: "ts-jest",
-  testEnvironment: "node",
+  testEnvironment: "jsdom",
   transform: {
-    "^.+\\.tsx?$": "ts-jest",
+    "^.+\\.(ts|tsx)$": "ts-jest",
+    "^.+\\.(js|jsx)$": "babel-jest",
+  },
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  moduleNameMapper: {
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
   },
   testMatch: ["**/backend/src/tests/**/*.test.ts"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
